@@ -77,7 +77,7 @@ const SignIn: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-2 text-sm text-gray-400 hover:text-white"
+                className="absolute right-2 top-3 text-sm text-gray-400 hover:text-white"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>

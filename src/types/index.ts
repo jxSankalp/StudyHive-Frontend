@@ -24,3 +24,13 @@ export type Whiteboard = {
   thumbnail: string;
 };
   
+
+export interface Group {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string; // or LucideIcon if you use icon components directly
+  members: number;
+  lastMessage: string;
+  color: string;
+}

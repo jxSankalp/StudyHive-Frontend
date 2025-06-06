@@ -1,45 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   MessageCircle,
   Users,
-  Zap,
-  Code,
-  Gamepad2,
   Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import clsx from "clsx";
+import type { Group } from "@/types/index"; 
 
-const initialGroups = [
-  {
-    id: "developers",
-    name: "Developers Hub",
-    description: "Code, debug, and innovate together",
-    icon: Code,
-    members: 1247,
-    lastMessage: "New React 19 features discussion",
-    color: "from-purple-500 to-pink-500",
-  },
-  {
-    id: "designers",
-    name: "Design Studio",
-    description: "Creative minds unite",
-    icon: Zap,
-    members: 892,
-    lastMessage: "UI/UX trends for 2024",
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    id: "gamers",
-    name: "Gaming Arena",
-    description: "Level up your gaming experience",
-    icon: Gamepad2,
-    members: 2156,
-    lastMessage: "New game releases this week",
-    color: "from-green-500 to-emerald-500",
-  },
-];
 
 const gradientColors = [
   "from-purple-500 to-pink-500",
@@ -52,12 +22,20 @@ const gradientColors = [
   "from-fuchsia-500 to-violet-500",
 ];
 
-
 export default function HomePage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [groups, setGroups] = useState(initialGroups);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [showModal, setShowModal] = useState(false);
+
+  const fetchGroups = async () => {
+    const {data} = await axios.get("/api/chat");
+    setGroups(data);
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
 
   const filteredGroups = groups.filter(
     (group) =>
@@ -72,18 +50,21 @@ export default function HomePage() {
   const handleCreateGroup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    const name = (form.elements.namedItem("name") as HTMLInputElement)?.value.trim();
-    const description = (form.elements.namedItem("description") as HTMLTextAreaElement)?.value.trim();
+    const name = (
+      form.elements.namedItem("name") as HTMLInputElement
+    )?.value.trim();
+    const description = (
+      form.elements.namedItem("description") as HTMLTextAreaElement
+    )?.value.trim();
     if (!name || !description) return;
 
     const randomColor =
       gradientColors[Math.floor(Math.random() * gradientColors.length)];
 
-    const newGroup = {
+    const newGroup : Group = {
       id: name.toLowerCase().replace(/\s+/g, "-"),
       name,
       description,
-      icon: MessageCircle,
       members: 1,
       lastMessage: "New group created!",
       color: randomColor,
@@ -147,7 +128,7 @@ export default function HomePage() {
           </div>
 
           {filteredGroups.map((group) => {
-            const IconComponent = group.icon;
+            const IconComponent = MessageCircle;
             return (
               <div
                 key={group.id}

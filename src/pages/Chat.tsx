@@ -4,7 +4,6 @@ import React from "react";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import Messages from "@/components/chat/Messages"
 import {
   ArrowLeft,
   Plus,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Messages from "@/components/chat/Messages"
 import Notes from "@/components/chat/Notes";
 import Meetings from "@/components/chat/Meetings";
 import Whiteboards from "@/components/chat/Whiteboards";

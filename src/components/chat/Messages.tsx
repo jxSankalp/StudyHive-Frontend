@@ -5,10 +5,8 @@ import { useState } from "react";
 import { Send } from "lucide-react";
 
 const Messages = () => {
-
   const [newMessage, setNewMessage] = useState("");
   
-
   const chatMessages = [
     {
       id: 1,
@@ -52,18 +50,17 @@ const Messages = () => {
   ];
 
   const handleSendMessage = () => {
-      if (newMessage.trim()) {
-        setNewMessage("");
-      }
-    };
-  
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSendMessage();
-      }
-    };
-  
+    if (newMessage.trim()) {
+      setNewMessage("");
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col">
@@ -111,7 +108,7 @@ const Messages = () => {
       {/* Message Input */}
       <div className="bg-gray-900/60 backdrop-blur-xl border-t border-gray-700/30 p-6">
         <div className="flex items-end space-x-4">
-            <div className="flex-1">
+          <div className="flex-1">
             <Input
               placeholder="Type your message..."
               value={newMessage}
@@ -119,7 +116,7 @@ const Messages = () => {
               onKeyDown={handleKeyPress}
               className="bg-gray-800/50 border-gray-700/50 text-white placeholder-gray-500 rounded-2xl py-4 px-6 text-lg resize-none"
             />
-            </div>
+          </div>
           <Button
             onClick={handleSendMessage}
             disabled={!newMessage.trim()}

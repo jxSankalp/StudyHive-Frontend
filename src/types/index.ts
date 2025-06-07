@@ -38,7 +38,7 @@ export interface Group {
 export interface CreateGroupModalProps {
   showModal: boolean;
   setShowModal: (value: boolean) => void;
-  setGroups: React.Dispatch<React.SetStateAction<Group[]>>;
+  onGroupCreated: () => void;
 }
 
 export interface IUser {

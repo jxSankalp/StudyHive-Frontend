@@ -1,14 +1,13 @@
 import type { CreateGroupModalProps, IUser } from "@/types";
 import axios from "axios";
 import { useState, useEffect } from "react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 
 const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   showModal,
   setShowModal,
-  setGroups,
+  onGroupCreated,
 }) => {
-
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<IUser[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
@@ -52,7 +51,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     }
 
     try {
-        const clerkIds = selectedUsers.map((user) => user.clerkId);
+      const clerkIds = selectedUsers.map((user) => user.clerkId);
 
       const res = await axios.post("/api/chat", {
         name,
@@ -60,16 +59,15 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         users: clerkIds,
       });
 
-      console.log("hii1")
+      console.log("hii1");
 
       const createdGroup = res.data.chat;
       console.log("hii2");
-      console.log(createdGroup)
+      console.log(createdGroup);
 
       console.log("hii3");
-
-      setGroups((prev) => [createdGroup, ...prev]);
       toast.success("Group created successfully!");
+      onGroupCreated();
       setShowModal(false);
       form.reset();
       setSelectedUsers([]);
@@ -160,7 +158,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                 </div>
               ))}
             </div>
-            <Toaster richColors />
+            
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition"

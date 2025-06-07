@@ -10,6 +10,7 @@ import clsx from "clsx";
 import type { Group } from "@/types/index"; 
 import axios from "axios";
 import CreateGroupModal from "@/components/CreateGroupModal";
+import { Toaster } from "sonner";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -45,6 +46,8 @@ export default function HomePage() {
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.1),transparent_50%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,0.1)_50%,transparent_75%)] bg-[length:60px_60px]" />
+
+      <Toaster richColors />
 
       <div className="relative z-10 container mx-auto px-4 py-16">
         {/* Header */}
@@ -139,7 +142,7 @@ export default function HomePage() {
         <CreateGroupModal
           showModal={showModal}
           setShowModal={setShowModal}
-          setGroups={setGroups}
+          onGroupCreated={fetchGroups}
         />
       </div>
     </div>

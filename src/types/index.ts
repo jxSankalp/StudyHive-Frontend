@@ -27,10 +27,21 @@ export type Whiteboard = {
 
 export interface Group {
   id: string;
-  name: string;
+  chatName: string;
   description: string;
-  icon?: string; // or LucideIcon if you use icon components directly
-  members: number;
+  icon?: string;
+  usercount: number;
   lastMessage: string;
   color: string;
+}
+
+export interface CreateGroupModalProps {
+  showModal: boolean;
+  setShowModal: (value: boolean) => void;
+  setGroups: React.Dispatch<React.SetStateAction<Group[]>>;
+}
+
+export interface IUser {
+  clerkId: string;
+  username: string;
 }

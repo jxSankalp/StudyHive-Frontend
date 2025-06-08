@@ -26,7 +26,7 @@ export type Whiteboard = {
   
 
 export interface Group {
-  id: string;
+  _id: string;
   chatName: string;
   description: string;
   icon?: string;

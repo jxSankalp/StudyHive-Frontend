@@ -12,19 +12,19 @@ import {
   PenTool,
   Search,
   MoreVertical,
-  Calendar,
   Users,
   Clock,
   MessageCircle,
-
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import Messages from "@/components/chat/Messages"
+import Messages from "@/components/chat/Messages";
 import Notes from "@/components/chat/Notes";
 import Meetings from "@/components/chat/Meetings";
 import Whiteboards from "@/components/chat/Whiteboards";
 import type { Note, Meeting, Whiteboard } from "@/types";
+import { GroupOptionsMenu } from "@/components/GroupOptionsMenu";
+import { Toaster } from "sonner";
 
 const workspaceData: {
   notes: Note[];
@@ -143,7 +143,6 @@ export default function WorkspacePage() {
   const handleCreateNew = (type: TabType) => {
     console.log(`Creating new ${type}`);
   };
-
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -285,9 +284,7 @@ export default function WorkspacePage() {
   const renderMainContent = () => {
     // Always show chat when chat tab is active
     if (activeTab === "chat") {
-      return (
-        <Messages/>
-      );
+      return <Messages />;
     }
 
     // Show workspace content for other tabs
@@ -326,16 +323,12 @@ export default function WorkspacePage() {
     // Render content based on selected item and active tab
     if (activeTab === "notes") {
       const note = workspaceData.notes.find((n) => n.id === selectedItem);
-      return (
-        <Notes note={note}/>
-      );
+      return <Notes note={note} />;
     }
 
     if (activeTab === "meetings") {
       const meeting = workspaceData.meetings.find((m) => m.id === selectedItem);
-      return (
-        <Meetings meeting={meeting}/>
-      );
+      return <Meetings meeting={meeting} />;
     }
 
     if (activeTab === "whiteboards") {
@@ -448,6 +441,8 @@ export default function WorkspacePage() {
         </div>
       </div>
 
+      <Toaster richColors/>
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
@@ -479,40 +474,7 @@ export default function WorkspacePage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              {activeTab === "chat" && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <Video className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <Users className="w-5 h-5" />
-                  </Button>
-                </>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white"
-              >
-                <Calendar className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white"
-              >
-                <MoreVertical className="w-5 h-5" />
-              </Button>
-            </div>
+            <GroupOptionsMenu />
           </div>
         </div>
 

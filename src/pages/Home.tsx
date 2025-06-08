@@ -95,13 +95,48 @@ export default function HomePage() {
               </h3>
             </div>
           </div>
+          {/* <div
+            key={1234}
+            onClick={() => handleGroupClick("1234")}
+            className="group cursor-pointer transform hover:scale-105 transition-all duration-300"
+          >
+            <div className="relative">
+              <div
+                className={`absolute inset-0 bg-gradient-to-r rounded-3xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300`}
+              />
+              <div className="relative bg-gray-900/60 backdrop-blur-xl border border-gray-700/30 rounded-3xl p-8 hover:border-gray-600/50 transition-all duration-300">
+                <div
+                  className={clsx(
+                    "w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300",
+                    `bg-gradient-to-r`
+                  )}
+                >
+                  <MessageCircle className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">
+                  Demo
+                </h3>
+                <p className="text-gray-400 mb-6">Demo Description</p>
+                <div className="flex justify-between text-sm text-gray-400">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    10 members
+                  </div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                </div>
+                <p className="text-gray-500 text-sm mt-4 border-t border-gray-700/30 pt-2 truncate">
+                  Yoooooooooooo
+                </p>
+              </div>
+            </div>
+          </div> */}
 
           {filteredGroups.map((group) => {
             const IconComponent = MessageCircle;
             return (
               <div
-                key={group.id}
-                onClick={() => handleGroupClick(group.id)}
+                key={group._id}
+                onClick={() => handleGroupClick(group._id)}
                 className="group cursor-pointer transform hover:scale-105 transition-all duration-300"
               >
                 <div className="relative">

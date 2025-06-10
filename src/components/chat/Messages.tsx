@@ -1,57 +1,131 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
+import axios from "axios";
+import { useParams } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
+import { io, Socket } from "socket.io-client";
+import { socket } from "@/lib/socket";
+
+interface User {
+  _id: string;
+  username: string;
+  photo?: string;
+  clerkId: string;
+}
+
+interface Message {
+  _id: string;
+  sender: User;
+  content: string;
+  createdAt: string;
+}
+
+const ENDPOINT = "http://localhost:3000";
+var selectedChatCompare: string;
 
 const Messages = () => {
+  const { id: chatId } = useParams();
+  const { userId, isLoaded } = useAuth();
   const [newMessage, setNewMessage] = useState("");
-  
-  const chatMessages = [
-    {
-      id: 1,
-      user: "Alex Chen",
-      message: "Hey everyone! Just pushed the new feature to staging",
-      time: "2:30 PM",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 2,
-      user: "Sarah Kim",
-      message: "Looks great! The UI improvements are really smooth",
-      time: "2:32 PM",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 3,
-      user: "Mike Johnson",
-      message:
-        "I found a small bug in the mobile version, creating a ticket now",
-      time: "2:35 PM",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 4,
-      user: "You",
-      message:
-        "Thanks for catching that! Let me know if you need any help debugging",
-      time: "2:37 PM",
-      avatar: "/placeholder.svg?height=40&width=40",
-      isOwn: true,
-    },
-    {
-      id: 5,
-      user: "Emma Davis",
-      message:
-        "The performance improvements are incredible! Load time is down by 40%",
-      time: "2:40 PM",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-  ];
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (!chatId || !userId || !isLoaded) return;
+
+    console.log(userId);
+
+    socket.connect();
+    socket.emit("setup", userId);
+    socket.on("connected", () => setSocketConnected(true));
+
+  }, [userId, isLoaded]);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!chatId) return;
+
+      setLoading(true);
+      try {
+        const response = await axios.get(`/api/messages/${chatId}`);
+        const fetchedMessages: Message[] = response.data;
+
+        setMessages(Array.isArray(fetchedMessages) ? fetchedMessages : []);
+
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMessages();
+    selectedChatCompare = chatId as string;
+  }, [chatId]);
+
+  useEffect(() => {
+    if (!socketConnected || !chatId) return;
+    socket.emit("join chat", chatId ,userId);
+    selectedChatCompare = chatId;
+  }, [chatId, socketConnected]);
+  
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessageReceived = (
+      newMessageRecieved: Message & { chat: { _id: string } }
+    ) => {
+      if (
+        !selectedChatCompare ||
+        selectedChatCompare !== newMessageRecieved.chat._id
+      ) {
+        console.log("Message received in a different chat, not updating UI");
+      } else {
+        setMessages((prevMessages) => [...prevMessages, newMessageRecieved]);
+        // console.log(newMessageRecieved.content);
+      }
+    };
+
+    socket.on("message recieved", handleMessageReceived);
+
+    return () => {
+      socket.off("message recieved", handleMessageReceived); // Clean up on unmount
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [loading, messages]);
+
+  const handleSendMessage = async () => {
+    const content = newMessage.trim();
+    if (!content || !chatId) return;
+
+    try {
+      const response = await axios.post("/api/messages", {
+        content,
+        chatId,
+      });
+
+      const newMsg: Message = response.data;
+      setMessages((prev = []) => [...prev, newMsg]);
       setNewMessage("");
+
+      socket.emit("new message", newMsg);
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
   };
 
@@ -63,46 +137,64 @@ const Messages = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col overflow-hidden">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {chatMessages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.isOwn ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={`flex space-x-3 max-w-2xl ${
-                message.isOwn ? "flex-row-reverse space-x-reverse" : ""
-              }`}
-            >
-              <Avatar className="w-10 h-10">
-                <AvatarImage src={message.avatar || "/placeholder.svg"} />
-                <AvatarFallback>{message.user.charAt(0)}</AvatarFallback>
-              </Avatar>
-
-              <div className={`${message.isOwn ? "text-right" : ""}`}>
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-sm font-medium text-gray-300">
-                    {message.user}
-                  </span>
-                  <span className="text-xs text-gray-500">{message.time}</span>
-                </div>
+        {loading ? (
+          <div className="text-center text-gray-500">Loading messages...</div>
+        ) : messages.length > 0 ? (
+          messages.map((message) => {
+            const isOwn = message.sender.clerkId === userId;
+            return (
+              <div
+                key={message._id}
+                className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+              >
                 <div
-                  className={`p-4 rounded-2xl ${
-                    message.isOwn
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                      : "bg-gray-800/60 text-gray-100"
+                  className={`flex max-w-2xl items-start space-x-3 ${
+                    isOwn ? "flex-row-reverse space-x-reverse" : ""
                   }`}
                 >
-                  {message.message}
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage
+                      src={message.sender.photo || "/placeholder.svg"}
+                    />
+                    <AvatarFallback>
+                      {message.sender.username?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className={`${isOwn ? "text-right" : "text-left"}`}>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="text-sm font-medium text-gray-300">
+                        {message.sender.username}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(message.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+
+                    <div
+                      className={`p-4 rounded-2xl break-words max-w-md ${
+                        isOwn
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                          : "bg-gray-700 text-gray-100"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        ))}
+            );
+          })
+        ) : (
+          <div className="text-center text-gray-500">No messages yet.</div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
@@ -114,12 +206,13 @@ const Messages = () => {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyPress}
-              className="bg-gray-800/50 border-gray-700/50 text-white placeholder-gray-500 rounded-2xl py-4 px-6 text-lg resize-none"
+              disabled={!chatId || loading}
+              className="bg-gray-800/50 border-gray-700/50 text-white placeholder-gray-500 rounded-2xl py-4 px-6 text-lg resize-none disabled:opacity-50"
             />
           </div>
           <Button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || !chatId || loading}
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-2xl px-8 py-4 h-auto"
           >
             <Send className="w-5 h-5" />

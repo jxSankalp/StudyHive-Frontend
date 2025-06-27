@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Plus,
@@ -25,35 +25,15 @@ import Whiteboards from "@/components/chat/Whiteboards";
 import type { Note, Meeting, Whiteboard } from "@/types";
 import { GroupOptionsMenu } from "@/components/GroupOptionsMenu";
 import { Toaster } from "sonner";
+import CreateNotesModal from "@/components/CreateNotesModal";
+import axios from "axios";
+import { format } from "date-fns";
 
 const workspaceData: {
-  notes: Note[];
   meetings: Meeting[];
   whiteboards: Whiteboard[];
 } = {
-  notes: [
-    {
-      id: "note-1",
-      title: "Project Requirements",
-      content: "Key requirements for the new dashboard feature...",
-      lastModified: "2 hours ago",
-      author: "Alex Chen",
-    },
-    {
-      id: "note-2",
-      title: "Meeting Notes - Sprint Planning",
-      content: "Sprint planning discussion points and action items...",
-      lastModified: "1 day ago",
-      author: "Sarah Kim",
-    },
-    {
-      id: "note-3",
-      title: "API Documentation",
-      content: "REST API endpoints and authentication methods...",
-      lastModified: "3 days ago",
-      author: "Mike Johnson",
-    },
-  ],
+  
   meetings: [
     {
       id: "room-1",
@@ -109,9 +89,14 @@ type TabType = "chat" | "notes" | "meetings" | "whiteboards";
 
 export default function WorkspacePage() {
   const navigate = useNavigate();
+  const {id:chatId} = useParams();
   const [activeTab, setActiveTab] = useState<TabType>("chat");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [allNotesData , setAllNotesData] = useState<Note[]>([]);
+  const [noteData, setNoteData] = useState<Note | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const tabs = [
     {
@@ -140,8 +125,57 @@ export default function WorkspacePage() {
     },
   ];
 
+  const fetchNoteById = async (noteId: string) => {
+    try {
+      const res = await axios.get(`/api/notes/${noteId}`, {
+        params: {
+          noteId,
+        },
+      });
+  
+      const notedata = res.data.data as Note;
+
+      if (!notedata) {
+        console.error(`Note with ID ${noteId} not found`);
+        return
+      }
+      setNoteData(notedata);
+
+    } catch (error) {
+      console.error(`Failed to fetch note with ID ${noteId}:`, error);
+    }
+  };
+  
+  const fetchData = async (tab: TabType) => {
+
+    if (tab === "chat" || tab === "meetings" || tab === "whiteboards") {
+      return;
+    }
+
+    try {
+      const res = await axios.get(`/api/${tab}`,{
+        params: {
+          chatId
+        },
+      });
+
+      setAllNotesData(res.data.data || []);
+
+    } catch (error) {
+      console.error(`Failed to fetch data for ${tab}:`, error);
+    }
+  };
+
+  useEffect(() => {
+      fetchData(activeTab);
+  }, [activeTab, refreshKey]);
+
   const handleCreateNew = (type: TabType) => {
     console.log(`Creating new ${type}`);
+
+    if (type === "notes") {
+      setShowNotesModal(true);
+    }
   };
 
   const renderTabContent = () => {
@@ -156,19 +190,22 @@ export default function WorkspacePage() {
         );
 
       case "notes":
-        return workspaceData.notes.map((note) => (
+        return allNotesData.map((note) => (
           <div
-            key={note.id}
-            onClick={() => setSelectedItem(note.id)}
+            key={note._id}
+            onClick={() => {
+              setSelectedItem(note._id);
+              fetchNoteById(note._id);
+            }}
             className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group ${
-              selectedItem === note.id
-                ? "bg-gray-700/50 border border-gray-600/50"
+              selectedItem === note._id
+                ? "bg-gray-700/50 "
                 : "hover:bg-gray-800/30"
             }`}
           >
             <div className="flex items-start justify-between mb-2">
               <h3 className="text-white font-medium truncate flex-1">
-                {note.title}
+                {note.name}
               </h3>
               <Button
                 variant="ghost"
@@ -182,8 +219,10 @@ export default function WorkspacePage() {
               {note.content}
             </p>
             <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>by {note.author}</span>
-              <span>{note.lastModified}</span>
+              <span>by {note.createdBy.username}</span>
+              <span>
+                {format(new Date(note.createdAt), "dd MMM yyyy, hh:mm a")}
+              </span>
             </div>
           </div>
         ));
@@ -195,7 +234,7 @@ export default function WorkspacePage() {
             onClick={() => setSelectedItem(room.id)}
             className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group ${
               selectedItem === room.id
-                ? "bg-gray-700/50 border border-gray-600/50"
+                ? "bg-gray-700/50 "
                 : "hover:bg-gray-800/30"
             }`}
           >
@@ -237,7 +276,7 @@ export default function WorkspacePage() {
             onClick={() => setSelectedItem(board.id)}
             className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group ${
               selectedItem === board.id
-                ? "bg-gray-700/50 border border-gray-600/50"
+                ? "bg-gray-700/50 "
                 : "hover:bg-gray-800/30"
             }`}
           >
@@ -277,7 +316,7 @@ export default function WorkspacePage() {
   };
 
   const getCurrentTabData = () => {
-    if (activeTab === "chat") return [];
+    if (activeTab === "chat" || activeTab  === "notes") return [];
     return workspaceData[activeTab] || [];
   };
 
@@ -322,8 +361,8 @@ export default function WorkspacePage() {
 
     // Render content based on selected item and active tab
     if (activeTab === "notes") {
-      const note = workspaceData.notes.find((n) => n.id === selectedItem);
-      return <Notes note={note} />;
+      
+      return <Notes note={noteData} setRefreshKey={setRefreshKey} />;
     }
 
     if (activeTab === "meetings") {
@@ -386,15 +425,13 @@ export default function WorkspacePage() {
                   onClick={() => {
                     setActiveTab(tab.id);
                     setSelectedItem(null);
+                    fetchData(tab.id);
                   }}
                   initial={false}
                   animate={{
                     backgroundColor: isActive
                       ? "rgba(55, 65, 81, 0.5)"
                       : "transparent",
-                    border: isActive
-                      ? "1px solid rgba(75, 85, 99, 0.5)"
-                      : "none",
                   }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   className={`w-full flex items-center space-x-3 p-3 rounded-xl ${
@@ -441,7 +478,7 @@ export default function WorkspacePage() {
         </div>
       </div>
 
-      <Toaster richColors/>
+      <Toaster richColors />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
@@ -473,13 +510,17 @@ export default function WorkspacePage() {
                 </p>
               </div>
             </div>
-
-            <GroupOptionsMenu />
           </div>
         </div>
-
+        <GroupOptionsMenu />
         {/* Main Content */}
         {renderMainContent()}
+
+        <CreateNotesModal
+          showModal={showNotesModal}
+          setShowModal={setShowNotesModal}
+          setRefreshKey={setRefreshKey}
+        />
       </div>
     </div>
   );

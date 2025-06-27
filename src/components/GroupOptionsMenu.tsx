@@ -73,14 +73,14 @@ export function GroupOptionsMenu() {
     try {
       const userIds = selectedUsers.map((user) => user.clerkId);
 
-      console.log(id)
-      console.log(userIds)
+      console.log(id);
+      console.log(userIds);
       const data = await axios.put(`/api/chat/groupadd`, {
         chatId: id,
         userIds,
       });
 
-      console.log(data)
+      console.log(data);
 
       toast.success("Users added successfully!");
       setSelectedUsers([]);
@@ -92,7 +92,7 @@ export function GroupOptionsMenu() {
   };
 
   return (
-    <div className="flex items-center space-x-2 relative">
+    <div className="flex items-center space-x-2 absolute top-[5vh] right-[5vh] z-50">
       <div className="relative">
         <Button
           variant="ghost"
@@ -106,110 +106,111 @@ export function GroupOptionsMenu() {
         {showOptions && (
           <>
             <div
-              className="fixed inset-0 z-40"
-              onClick={() => setShowOptions(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 24,
-              }}
-              className="absolute right-0 mt-2 z-50 w-64 bg-gray-900 border border-gray-700 shadow-xl rounded-xl py-2"
+              className="fixed inset-0 z-40 flex items-start justify-end pt-[10vh]"
+              onClick={() => setShowOptions(false)} 
             >
-              <h2 className="text-base font-semibold text-white px-4 py-2 border-b border-gray-800">
-                Group Options
-              </h2>
-              
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 24,
+                }}
+                className=" w-64 bg-gray-900 border border-gray-700 shadow-xl rounded-xl py-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 className="text-base font-semibold text-white px-4 py-2 border-b border-gray-800">
+                  Group Options
+                </h2>
 
-              {/* Add users */}
-              <div className="px-4 py-2">
-                <label className="block text-gray-300 text-sm mb-1">
-                  Add users
-                </label>
-                <div className="space-y-2">
+                {/* Add users */}
+                <div className="px-4 pt-2">
+                  <label className="block text-gray-300 text-sm mb-2">
+                    Add users
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex space-x-2">
+                      <Input
+                        type="text"
+                        value={addUsername}
+                        onChange={(e) => setAddUsername(e.target.value)}
+                        placeholder="Search by username or email"
+                        className="flex-1 bg-gray-800 border-gray-700 text-white"
+                      />
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={handleAddUsers}
+                      >
+                        Add
+                      </Button>
+                    </div>
+
+                    {/* Search Results */}
+                    {searchResults.length > 0 && (
+                      <ul className="bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto">
+                        {searchResults.map((user: IUser) => (
+                          <li
+                            key={user.clerkId}
+                            className="p-2 hover:bg-gray-700 text-white cursor-pointer"
+                            onClick={() => handleSelectUser(user)}
+                          >
+                            {user.username}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* Selected Users */}
+                    <div className="flex flex-wrap gap-2">
+                      {selectedUsers.map((user) => (
+                        <div
+                          key={user.clerkId}
+                          className="flex items-center bg-gray-700 text-white px-3 py-1 rounded-full text-sm"
+                        >
+                          {user.username}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveUser(user.clerkId)}
+                            className="ml-2 text-gray-400 hover:text-white"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rename group */}
+                <div className="px-4 pb-2">
+                  <label className="block text-gray-300 text-sm mb-2">
+                    Rename group
+                  </label>
                   <div className="flex space-x-2">
                     <Input
                       type="text"
-                      value={addUsername}
-                      onChange={(e) => setAddUsername(e.target.value)}
-                      placeholder="Search by username or email"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      placeholder="New group name"
                       className="flex-1 bg-gray-800 border-gray-700 text-white"
                     />
                     <Button
                       size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={handleAddUsers}
+                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={() => {
+                        handleRename();
+                        setShowOptions(false);
+                      }}
                     >
-                      Add
+                      ✏️
                     </Button>
                   </div>
-
-                  {/* Search Results */}
-                  {searchResults.length > 0 && (
-                    <ul className="bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto">
-                      {searchResults.map((user: IUser) => (
-                        <li
-                          key={user.clerkId}
-                          className="p-2 hover:bg-gray-700 text-white cursor-pointer"
-                          onClick={() => handleSelectUser(user)}
-                        >
-                          {user.username}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {/* Selected Users */}
-                  <div className="flex flex-wrap gap-2">
-                    {selectedUsers.map((user) => (
-                      <div
-                        key={user.clerkId}
-                        className="flex items-center bg-gray-700 text-white px-3 py-1 rounded-full text-sm"
-                      >
-                        {user.username}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveUser(user.clerkId)}
-                          className="ml-2 text-gray-400 hover:text-white"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              </div>
-
-              {/* Rename group */}
-              <div className="px-4 py-2">
-                <label className="block text-gray-300 text-sm mb-1">
-                  Rename group
-                </label>
-                <div className="flex space-x-2">
-                  <Input
-                    type="text"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    placeholder="New group name"
-                    className="flex-1 bg-gray-800 border-gray-700 text-white"
-                  />
-                  <Button
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700"
-                    onClick={() => {
-                      handleRename();
-                      setShowOptions(false);
-                    }}
-                  >
-                    ✏️
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </div>

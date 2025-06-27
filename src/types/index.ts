@@ -1,11 +1,19 @@
 // src/types/index.ts
-export type Note = {
-  id: string;
-  title: string;
+export interface Note {
+  _id: string;
+  name: string;
   content: string;
-  lastModified: string;
-  author: string;
-};
+  createdBy: {
+    _id: string;
+    username: string;
+    email: string;
+    clerkId: string;
+  };
+  chat: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 export type Meeting = {
   id: string;

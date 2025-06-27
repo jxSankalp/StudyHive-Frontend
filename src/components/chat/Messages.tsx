@@ -6,7 +6,6 @@ import { Send } from "lucide-react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
-import { io, Socket } from "socket.io-client";
 import { socket } from "@/lib/socket";
 
 interface User {
@@ -23,7 +22,6 @@ interface Message {
   createdAt: string;
 }
 
-const ENDPOINT = "http://localhost:3000";
 var selectedChatCompare: string;
 
 const Messages = () => {

@@ -1,0 +1,16 @@
+body,
+html {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  font-family: sans-serif;
+}
+
+.str-video {
+  background-color: #1a1a1a;
+  color: #ffffff;
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}

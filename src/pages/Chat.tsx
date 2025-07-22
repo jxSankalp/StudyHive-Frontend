@@ -28,6 +28,7 @@ import { Toaster } from "sonner";
 import CreateNotesModal from "@/components/CreateNotesModal";
 import axios from "axios";
 import { format } from "date-fns";
+import CreateMeetingModal from "@/components/CreateMeetingModal";
 
 const workspaceData: {
   meetings: Meeting[];
@@ -94,7 +95,9 @@ export default function WorkspacePage() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [allNotesData , setAllNotesData] = useState<Note[]>([]);
+  const [allMeetData , setAllMeetData] = useState<Meeting[]>([]);
   const [noteData, setNoteData] = useState<Note | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -146,25 +149,28 @@ export default function WorkspacePage() {
     }
   };
   
-  const fetchData = async (tab: TabType) => {
-
-    if (tab === "chat" || tab === "meetings" || tab === "whiteboards") {
+const fetchData = async (tab: TabType) => {
+  try {
+    if (tab === "chat" || tab === "whiteboards") {
       return;
     }
 
-    try {
-      const res = await axios.get(`/api/${tab}`,{
-        params: {
-          chatId
-        },
+    let res;
+
+    if (tab === "meetings") {
+      res = await axios.get(`/api/meet/${chatId}`);
+      setAllMeetData(res.data || []); // Make sure this state setter exists
+    } else {
+      res = await axios.get(`/api/${tab}`, {
+        params: { chatId },
       });
-
       setAllNotesData(res.data.data || []);
-
-    } catch (error) {
-      console.error(`Failed to fetch data for ${tab}:`, error);
     }
-  };
+  } catch (error) {
+    console.error(`Failed to fetch data for ${tab}:`, error);
+  }
+};
+
 
   useEffect(() => {
       fetchData(activeTab);
@@ -175,6 +181,9 @@ export default function WorkspacePage() {
 
     if (type === "notes") {
       setShowNotesModal(true);
+    }
+    else if (type === "meetings") {
+      setShowMeetingModal(true);
     }
   };
 
@@ -228,7 +237,7 @@ export default function WorkspacePage() {
         ));
 
       case "meetings":
-        return workspaceData.meetings.map((room) => (
+        return allMeetData.map((room) => (
           <div
             key={room.id}
             onClick={() => setSelectedItem(room.id)}
@@ -366,7 +375,7 @@ export default function WorkspacePage() {
     }
 
     if (activeTab === "meetings") {
-      const meeting = workspaceData.meetings.find((m) => m.id === selectedItem);
+      const meeting = allMeetData.find((m) => m.id === selectedItem);
       return <Meetings meeting={meeting} />;
     }
 
@@ -521,6 +530,14 @@ export default function WorkspacePage() {
           setShowModal={setShowNotesModal}
           setRefreshKey={setRefreshKey}
         />
+        <CreateMeetingModal
+  chatId={chatId||""} // ✅ Pass the current chat ID here
+  // clerkId={clerkId} // ✅ Pass the logged-in user’s Clerk ID
+  open={showMeetingModal}
+  onOpenChange={setShowMeetingModal}
+  onSuccess={() => setRefreshKey((k) => k + 1)} // optional callback
+/>
+
       </div>
     </div>
   );

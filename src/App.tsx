@@ -6,6 +6,7 @@ import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Chat from "./pages/Chat";
+import MeetingPage from "./pages/Meeting";
 
 function App() {
   const { isSignedIn } = useAuth();
@@ -22,6 +23,7 @@ function App() {
       <Route path="/chat/:id" element={<Chat />} />
       {/* Optional: fallback route */}
       <Route path="*" element={<Navigate to="/" />} />
+      <Route path="/meeting/:callId" element={<MeetingPage />} />
     </Routes>
   );
 }

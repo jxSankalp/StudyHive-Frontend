@@ -15,7 +15,7 @@ import {
 import type { Call } from "@stream-io/video-react-sdk";
 
 import "@stream-io/video-react-sdk/dist/css/styles.css";
-import "../../styles/meeting.css"; // create this to add layout styles if needed
+import "../../styles/meeting.css"; 
 import { useParams } from "react-router-dom";
 
 const MeetingPage = () => {

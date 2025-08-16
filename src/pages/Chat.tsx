@@ -16,12 +16,16 @@ import {
   Clock,
   MessageCircle,
 } from "lucide-react";
+import WhiteboardComponent from '@/components/chat/Whiteboards'; // Import the new component
+import CreateWhiteboardModal from '@/components/CreateWhiteBoardModal'; // Import the new modal
+import { useAuth } from '@clerk/clerk-react'; // Import Clerk hook
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Messages from "@/components/chat/Messages";
 import Notes from "@/components/chat/Notes";
 import Meetings from "@/components/chat/Meetings";
-import Whiteboards from "@/components/chat/Whiteboards";
+// import Whiteboards from "@/components/chat/Whiteboards";
 import type { Note, Meeting, Whiteboard } from "@/types";
 import { GroupOptionsMenu } from "@/components/GroupOptionsMenu";
 import { Toaster } from "sonner";
@@ -30,76 +34,80 @@ import axios from "axios";
 import { format } from "date-fns";
 import CreateMeetingModal from "@/components/CreateMeetingModal";
 
-const workspaceData: {
-  meetings: Meeting[];
-  whiteboards: Whiteboard[];
-} = {
+// const workspaceData: {
+//   meetings: Meeting[];
+//   whiteboards: Whiteboard[];
+// } = {
   
-  meetings: [
-    {
-      id: "room-1",
-      name: "Daily Standup",
-      participants: 8,
-      status: "active",
-      scheduledTime: "9:00 AM",
-      duration: "30 min",
-    },
-    {
-      id: "room-2",
-      name: "Design Review",
-      participants: 5,
-      status: "scheduled",
-      scheduledTime: "2:00 PM",
-      duration: "1 hour",
-    },
-    {
-      id: "room-3",
-      name: "Client Presentation",
-      participants: 12,
-      status: "ended",
-      scheduledTime: "Yesterday",
-      duration: "45 min",
-    },
-  ],
-  whiteboards: [
-    {
-      id: "board-1",
-      title: "System Architecture",
-      lastModified: "1 hour ago",
-      collaborators: 4,
-      thumbnail: "/placeholder.svg?height=60&width=80",
-    },
-    {
-      id: "board-2",
-      title: "User Flow Diagram",
-      lastModified: "5 hours ago",
-      collaborators: 3,
-      thumbnail: "/placeholder.svg?height=60&width=80",
-    },
-    {
-      id: "board-3",
-      title: "Brainstorming Session",
-      lastModified: "2 days ago",
-      collaborators: 6,
-      thumbnail: "/placeholder.svg?height=60&width=80",
-    },
-  ],
-};
+//   meetings: [
+//     {
+//       id: "room-1",
+//       name: "Daily Standup",
+//       participants: 8,
+//       status: "active",
+//       scheduledTime: "9:00 AM",
+//       duration: "30 min",
+//     },
+//     {
+//       id: "room-2",
+//       name: "Design Review",
+//       participants: 5,
+//       status: "scheduled",
+//       scheduledTime: "2:00 PM",
+//       duration: "1 hour",
+//     },
+//     {
+//       id: "room-3",
+//       name: "Client Presentation",
+//       participants: 12,
+//       status: "ended",
+//       scheduledTime: "Yesterday",
+//       duration: "45 min",
+//     },
+//   ],
+//   whiteboards: [
+//     {
+//       id: "board-1",
+//       title: "System Architecture",
+//       lastModified: "1 hour ago",
+//       collaborators: 4,
+//       thumbnail: "/placeholder.svg?height=60&width=80",
+//     },
+//     {
+//       id: "board-2",
+//       title: "User Flow Diagram",
+//       lastModified: "5 hours ago",
+//       collaborators: 3,
+//       thumbnail: "/placeholder.svg?height=60&width=80",
+//     },
+//     {
+//       id: "board-3",
+//       title: "Brainstorming Session",
+//       lastModified: "2 days ago",
+//       collaborators: 6,
+//       thumbnail: "/placeholder.svg?height=60&width=80",
+//     },
+//   ],
+// };
 
 type TabType = "chat" | "notes" | "meetings" | "whiteboards";
 
 export default function WorkspacePage() {
+
+  const { userId } = useAuth();
   const navigate = useNavigate();
   const {id:chatId} = useParams();
   const [activeTab, setActiveTab] = useState<TabType>("chat");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showWhiteboardModal, setShowWhiteboardModal] = useState(false);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [allNotesData , setAllNotesData] = useState<Note[]>([]);
   const [allMeetData , setAllMeetData] = useState<Meeting[]>([]);
   const [noteData, setNoteData] = useState<Note | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [allWhiteboardsData, setAllWhiteboardsData] = useState<Whiteboard[]>([]);
 
   const tabs = [
     {
@@ -151,7 +159,7 @@ export default function WorkspacePage() {
   
 const fetchData = async (tab: TabType) => {
   try {
-    if (tab === "chat" || tab === "whiteboards") {
+    if (tab === "chat" ) {
       return;
     }
 
@@ -160,11 +168,13 @@ const fetchData = async (tab: TabType) => {
     if (tab === "meetings") {
       res = await axios.get(`/api/meet/${chatId}`);
       setAllMeetData(res.data || []); // Make sure this state setter exists
-    } else {
-      res = await axios.get(`/api/${tab}`, {
-        params: { chatId },
-      });
+    } 
+    else if (tab === "notes") {
+      res = await axios.get(`/api/notes`, { params: { chatId } });
       setAllNotesData(res.data.data || []);
+    } else if (tab === "whiteboards") { // New case
+      res = await axios.get(`/api/whiteboards/group/${chatId}`);
+      setAllWhiteboardsData(res.data.data || []);
     }
   } catch (error) {
     console.error(`Failed to fetch data for ${tab}:`, error);
@@ -185,6 +195,9 @@ const fetchData = async (tab: TabType) => {
     else if (type === "meetings") {
       setShowMeetingModal(true);
     }
+    else if (type === "whiteboards") {
+    setShowWhiteboardModal(true); // New condition
+  }
   };
 
   const renderTabContent = () => {
@@ -279,45 +292,38 @@ const fetchData = async (tab: TabType) => {
         ));
 
       case "whiteboards":
-        return workspaceData.whiteboards.map((board) => (
-          <div
-            key={board.id}
-            onClick={() => setSelectedItem(board.id)}
-            className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group ${
-              selectedItem === board.id
-                ? "bg-gray-700/50 "
-                : "hover:bg-gray-800/30"
-            }`}
-          >
-            <div className="flex space-x-3">
-              <div className="w-16 h-12 bg-gray-700 rounded-lg flex-shrink-0 overflow-hidden">
-                <img
-                  src={board.thumbnail || "/placeholder.svg"}
-                  alt={board.title}
-                  className="w-full h-full object-cover"
-                />
+      return allWhiteboardsData.map((board) => ( // Use the new state
+        <div
+          key={board._id}
+          onClick={() => setSelectedItem(board._id)}
+          className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group ${
+            selectedItem === board._id
+              ? "bg-gray-700/50 "
+              : "hover:bg-gray-800/30"
+          }`}
+        >
+          <div className="flex space-x-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between mb-1">
+                <h3 className="text-white font-medium truncate">
+                  {board.title}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreVertical className="w-4 h-4 text-gray-400" />
+                </Button>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between mb-1">
-                  <h3 className="text-white font-medium truncate">
-                    {board.title}
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <MoreVertical className="w-4 h-4 text-gray-400" />
-                  </Button>
-                </div>
-                <div className="flex items-center space-x-3 text-xs text-gray-500">
-                  <span>{board.collaborators} collaborators</span>
-                  <span>{board.lastModified}</span>
-                </div>
+              <div className="flex items-center space-x-3 text-xs text-gray-500">
+                <span>Created by {board.createdBy?.username || 'unknown'}</span>
+                <span>{new Date(board.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
-        ));
+        </div>
+      ));
 
       default:
         return null;
@@ -326,7 +332,7 @@ const fetchData = async (tab: TabType) => {
 
   const getCurrentTabData = () => {
     if (activeTab === "chat" || activeTab  === "notes") return [];
-    return workspaceData[activeTab] || [];
+    return [];
   };
 
   const renderMainContent = () => {
@@ -379,11 +385,60 @@ const fetchData = async (tab: TabType) => {
       return <Meetings meeting={meeting} />;
     }
 
-    if (activeTab === "whiteboards") {
-      const whiteboard = workspaceData.whiteboards.find(
-        (w) => w.id === selectedItem
-      );
-      return <Whiteboards whiteboard={whiteboard} />;
+
+if (activeTab === "whiteboards") {
+        const whiteboard = allWhiteboardsData.find(
+            (w) => w._id === selectedItem
+        );
+
+        if (!selectedItem) {
+            // This case handles the "select a whiteboard" message
+            // or the "create new" button.
+            return (
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                            {tabs.find((tab) => tab.id === activeTab)?.icon &&
+                                React.createElement(
+                                    tabs.find((tab) => tab.id === activeTab)!.icon,
+                                    {
+                                        className: "w-12 h-12 text-gray-600",
+                                    }
+                                )}
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-400 mb-2">
+                            Select a whiteboard to get started
+                        </h3>
+                        <p className="text-gray-500 mb-6">
+                            Choose from the whiteboards in the sidebar or create a new one
+                        </p>
+                        <Button
+                            onClick={() => handleCreateNew(activeTab)}
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create New Whiteboard
+                        </Button>
+                    </div>
+                </div>
+            );
+        }
+        
+        // This case handles a valid whiteboard being selected.
+        if (whiteboard) {
+            return <WhiteboardComponent whiteboard={whiteboard} />;
+        }
+        
+        // This case handles when an item is selected but not found (e.g., loading or doesn't exist).
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                    <h3 className="text-2xl font-bold text-gray-400 mb-2">
+                        Whiteboard not found or still loading
+                    </h3>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -537,6 +592,11 @@ const fetchData = async (tab: TabType) => {
   onOpenChange={setShowMeetingModal}
   onSuccess={() => setRefreshKey((k) => k + 1)} // optional callback
 />
+          <CreateWhiteboardModal
+            showModal={showWhiteboardModal}
+            setShowModal={setShowWhiteboardModal}
+            setRefreshKey={setRefreshKey}
+          />
 
       </div>
     </div>

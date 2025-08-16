@@ -24,14 +24,27 @@ export type Meeting = {
   duration: string;
 };
 
+// export type Whiteboard = {
+//   id: string;
+//   title: string;
+//   lastModified: string;
+//   collaborators: number;
+//   thumbnail: string;
+// };
+
+// types/user.ts
 export type Whiteboard = {
-  id: string;
-  title: string;
-  lastModified: string;
-  collaborators: number;
-  thumbnail: string;
+  _id: string; // The unique identifier from MongoDB
+  title: string; // Use 'title' to match the backend Mongoose schema
+  groupId: string;
+  createdBy: {
+    _id: string;
+    username: string; // This needs to be populated from the backend
+  };
+  data: any;
+  createdAt: string;
+  updatedAt: string;
 };
-  
 
 export interface Group {
   _id: string;

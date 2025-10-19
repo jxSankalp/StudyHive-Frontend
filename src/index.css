@@ -118,3 +118,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+
+
+/* --- Stream Video SDK Dark Mode Fixes --- */
+.str-video__participant-name,
+.str-video__participant-details,
+.str-video__menu-item,
+.str-video__menu-item button,
+.str-video__tooltip,
+.str-video__button {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+.str-video__menu-item svg,
+.str-video__button svg {
+  fill: #ffffff !important;
+}
+
+.str-video__menu-item:hover,
+.str-video__menu-item:focus-within {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.str-video__participant-details {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.str-video__device-settings,
+.str-video__menu,
+.str-video__panel {
+  background-color: #1f1f1f !important;
+  color: #ffffff !important;
+}

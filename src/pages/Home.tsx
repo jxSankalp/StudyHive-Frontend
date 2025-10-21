@@ -4,13 +4,16 @@ import {
   MessageCircle,
   Users,
   Plus,
+  Home, // 1. Import Home icon
+  User, // 2. Import User icon for Profile
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import type { Group } from "@/types/index"; 
+import type { Group } from "@/types/index";
 import axios from "axios";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import { Toaster } from "sonner";
+import { Button } from "@/components/ui/button"; // 3. Import Button
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -19,9 +22,14 @@ export default function HomePage() {
   const [showModal, setShowModal] = useState(false);
 
   const fetchGroups = async () => {
-    const { data } = await axios.get("/api/chat");
-    console.log(data.chats)
-    setGroups(data.chats);
+    try {
+      const { data } = await axios.get("/api/chat");
+      console.log(data.chats);
+      setGroups(Array.isArray(data.chats) ? data.chats : []);
+    } catch (error) {
+      console.error("Failed to fetch groups:", error);
+      setGroups([]);
+    }
   };
 
   useEffect(() => {
@@ -36,9 +44,18 @@ export default function HomePage() {
       )
     : [];
 
-
   const handleGroupClick = (id: string) => {
     navigate(`/chat/${id}`);
+  };
+
+  // --- 4. Handler for Home Button ---
+  const handleHomeClick = () => {
+    navigate("/"); // Navigate to the root route (landing page)
+  };
+
+  // --- 5. Handler for Profile Button ---
+  const handleProfileClick = () => {
+    navigate("/profile"); // Navigate to the profile page
   };
 
   return (
@@ -49,9 +66,31 @@ export default function HomePage() {
 
       <Toaster richColors />
 
+      {/* --- 6. Add Home Button (Top Left) --- */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleHomeClick}
+        className="absolute top-6 left-6 z-20 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+        aria-label="Go to Landing Page"
+      >
+        <Home className="w-6 h-6" />
+      </Button>
+
+      {/* --- 7. Add Profile Button (Top Right) --- */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleProfileClick}
+        className="absolute top-6 right-6 z-20 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+        aria-label="Go to Profile"
+      >
+        <User className="w-6 h-6" />
+      </Button>
+
       <div className="relative z-10 container mx-auto px-4 py-16">
-        {/* Header */}
-        <div className="text-center mb-16">
+        {/* Header - Added padding to prevent overlap */}
+        <div className="text-center mb-16 pt-8">
           <h1 className="text-6xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent mb-4">
             Study Hive
           </h1>
@@ -95,42 +134,8 @@ export default function HomePage() {
               </h3>
             </div>
           </div>
-          {/* <div
-            key={1234}
-            onClick={() => handleGroupClick("1234")}
-            className="group cursor-pointer transform hover:scale-105 transition-all duration-300"
-          >
-            <div className="relative">
-              <div
-                className={`absolute inset-0 bg-gradient-to-r rounded-3xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300`}
-              />
-              <div className="relative bg-gray-900/60 backdrop-blur-xl border border-gray-700/30 rounded-3xl p-8 hover:border-gray-600/50 transition-all duration-300">
-                <div
-                  className={clsx(
-                    "w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300",
-                    `bg-gradient-to-r`
-                  )}
-                >
-                  <MessageCircle className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">
-                  Demo
-                </h3>
-                <p className="text-gray-400 mb-6">Demo Description</p>
-                <div className="flex justify-between text-sm text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    10 members
-                  </div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                </div>
-                <p className="text-gray-500 text-sm mt-4 border-t border-gray-700/30 pt-2 truncate">
-                  Yoooooooooooo
-                </p>
-              </div>
-            </div>
-          </div> */}
 
+          {/* Group Cards */}
           {filteredGroups.map((group) => {
             const IconComponent = MessageCircle;
             return (

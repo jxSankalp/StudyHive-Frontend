@@ -1,4 +1,4 @@
 // socket.ts
 import { io } from "socket.io-client";
-const ENDPOINT = "http://localhost:3000";
+const ENDPOINT = import.meta.env.VITE_BACKEND_URL;
 export const socket = io(ENDPOINT, { autoConnect: false });

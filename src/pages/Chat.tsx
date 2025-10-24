@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import WhiteboardComponent from '@/components/chat/Whiteboards'; // Import the new component
 import CreateWhiteboardModal from '@/components/CreateWhiteBoardModal'; // Import the new modal
-import { useAuth } from '@clerk/clerk-react'; // Import Clerk hook
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -94,7 +93,6 @@ type TabType = "chat" | "notes" | "meetings" | "whiteboards";
 
 export default function WorkspacePage() {
 
-  const { userId } = useAuth();
   const navigate = useNavigate();
   const {id:chatId} = useParams();
   const [activeTab, setActiveTab] = useState<TabType>("chat");

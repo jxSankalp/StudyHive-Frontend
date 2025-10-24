@@ -12,7 +12,7 @@ type NoteCardProps = {
   setRefreshKey: React.Dispatch<React.SetStateAction<number>>;
 };
 
-const socket = io("http://localhost:3000");
+const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
   const { userId } = useAuth();
@@ -33,8 +33,7 @@ const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
       });
       console.log("Note deleted successfully");
       toast.success("Note deleted successfully");
-      setRefreshKey((prev: number) => prev + 1); 
-
+      setRefreshKey((prev: number) => prev + 1);
     } catch (error) {
       console.error("Error deleting note:", error);
       toast.error(

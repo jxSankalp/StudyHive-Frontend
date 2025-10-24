@@ -4,9 +4,7 @@ import {
   FileText,
   PenTool,
   Zap,
-  Shield,
   Users,
-  Sparkles,
   Clock,
   Trophy,
   Star,
@@ -142,26 +140,7 @@ const Index = () => {
     { icon: Star, value: "4.9/5", label: "User Rating" },
   ];
 
-  const benefits = [
-    {
-      icon: Zap,
-      title: "Lightning Fast",
-      description:
-        "Optimized performance ensures zero lag during your most critical study sessions.",
-    },
-    {
-      icon: Shield,
-      title: "Secure & Private",
-      description:
-        "End-to-end encryption keeps your conversations and notes completely private.",
-    },
-    {
-      icon: Sparkles,
-      title: "AI-Powered",
-      description:
-        "Smart features like auto-summaries and intelligent search help you study smarter.",
-    },
-  ];
+
   const navigate = useNavigate();
   return (
     <>

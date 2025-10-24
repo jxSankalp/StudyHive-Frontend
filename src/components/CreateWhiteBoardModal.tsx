@@ -10,9 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import api from '@/lib/axiosInstance';
 
 type CreateWhiteboardModalProps = {
   showModal: boolean;
@@ -38,7 +38,7 @@ const CreateWhiteboardModal = ({
 
     setLoading(true);
     try {
-      await axios.post('/api/whiteboards', {
+      await api.post('/api/whiteboards', {
         name: whiteboardName,
         groupId: chatId,
       });

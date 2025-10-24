@@ -4,8 +4,8 @@ import type { Note } from "@/types";
 import { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 import { useAuth } from "@clerk/clerk-react";
-import axios from "axios";
 import { toast } from "sonner";
+import api from "@/lib/axiosInstance";
 
 type NoteCardProps = {
   note: Note | null;
@@ -26,7 +26,7 @@ const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
     if (!note?._id) return;
 
     try {
-      await axios.delete(`/api/notes/${note._id}`, {
+      await api.delete(`/api/notes/${note._id}`, {
         params: {
           noteId: note._id,
         },

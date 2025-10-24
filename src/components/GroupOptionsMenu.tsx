@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import axios from "axios";
 import { toast } from "sonner";
 import type { IUser } from "@/types";
+import api from "@/lib/axiosInstance";
 
 export function GroupOptionsMenu() {
   const { id } = useParams();
@@ -20,7 +20,7 @@ export function GroupOptionsMenu() {
     const delayDebounce = setTimeout(() => {
       const query = addUsername.trim();
       if (query) {
-        axios
+        api
           .get(`/api/users/search`, {
             params: { query },
           })
@@ -42,7 +42,7 @@ export function GroupOptionsMenu() {
     if (!newGroupName) return;
 
     try {
-      const { data } = await axios.put(`/api/chat/rename`, {
+      const { data } = await api.put(`/api/chat/rename`, {
         chatId: id,
         chatName: newGroupName,
       });
@@ -75,7 +75,7 @@ export function GroupOptionsMenu() {
 
       console.log(id);
       console.log(userIds);
-      const data = await axios.put(`/api/chat/groupadd`, {
+      const data = await api.put(`/api/chat/groupadd`, {
         chatId: id,
         userIds,
       });

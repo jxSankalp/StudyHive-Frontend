@@ -29,9 +29,9 @@ import type { Note, Meeting, Whiteboard } from "@/types";
 import { GroupOptionsMenu } from "@/components/GroupOptionsMenu";
 import { Toaster } from "sonner";
 import CreateNotesModal from "@/components/CreateNotesModal";
-import axios from "axios";
 import { format } from "date-fns";
 import CreateMeetingModal from "@/components/CreateMeetingModal";
+import api from "@/lib/axiosInstance";
 
 // const workspaceData: {
 //   meetings: Meeting[];
@@ -136,7 +136,7 @@ export default function WorkspacePage() {
 
   const fetchNoteById = async (noteId: string) => {
     try {
-      const res = await axios.get(`/api/notes/${noteId}`, {
+      const res = await api.get(`/api/notes/${noteId}`, {
         params: {
           noteId,
         },
@@ -164,14 +164,14 @@ const fetchData = async (tab: TabType) => {
     let res;
 
     if (tab === "meetings") {
-      res = await axios.get(`/api/meet/${chatId}`);
+      res = await api.get(`/api/meet/${chatId}`);
       setAllMeetData(res.data || []); // Make sure this state setter exists
     } 
     else if (tab === "notes") {
-      res = await axios.get(`/api/notes`, { params: { chatId } });
+      res = await api.get(`/api/notes`, { params: { chatId } });
       setAllNotesData(res.data.data || []);
     } else if (tab === "whiteboards") { // New case
-      res = await axios.get(`/api/whiteboards/group/${chatId}`);
+      res = await api.get(`/api/whiteboards/group/${chatId}`);
       setAllWhiteboardsData(res.data.data || []);
     }
   } catch (error) {

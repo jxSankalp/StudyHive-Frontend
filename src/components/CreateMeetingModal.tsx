@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 
 type Props = {
   chatId: string;
@@ -20,7 +20,7 @@ const CreateMeetingModal = ({ chatId, onSuccess, open, onOpenChange }: Props) =>
   const createMeeting = async () => {
     setLoading(true);
     try {
-      await axios.post("/api/meet/create-call", {
+      await api.post("/api/meet/create-call", {
         chatId,
         meetName,
       });

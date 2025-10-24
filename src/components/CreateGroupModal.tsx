@@ -1,5 +1,5 @@
+import api from "@/lib/axiosInstance";
 import type { CreateGroupModalProps, IUser } from "@/types";
-import axios from "axios";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -17,7 +17,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     const delayDebounce = setTimeout(() => {
       const query = searchQuery.trim();
       if (query) {
-        axios
+        api
           .get(`/api/users/search`, {
             params: { query },
           })
@@ -53,7 +53,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     try {
       const clerkIds = selectedUsers.map((user) => user.clerkId);
 
-      const res = await axios.post("/api/chat", {
+      const res = await api.post("/api/chat", {
         name,
         description,
         users: clerkIds,

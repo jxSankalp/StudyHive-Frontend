@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -27,7 +27,7 @@ const CreateNotesModal: React.FC<CreateNotesModalProps> = ({
    
     try {
     
-      const res = await axios.post("/api/notes", {
+      const res = await api.post("/api/notes", {
         name,
         content:"Go on .... ",
         chatId

@@ -17,7 +17,7 @@ import {
 import type { Whiteboard as WhiteboardType } from "@/types";
 import { io } from "socket.io-client";
 import { toast } from "sonner";
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 
 type WhiteboardProps = {
   whiteboard?: WhiteboardType;
@@ -80,7 +80,7 @@ const Whiteboard = ({ whiteboard }: WhiteboardProps) => {
 
     const fetchWhiteboardData = async () => {
       try {
-        const response = await axios.get(`/api/whiteboards/${whiteboard._id}`);
+        const response = await api.get(`/api/whiteboards/${whiteboard._id}`);
         const savedData = response.data.data.data;
 
         if (savedData) {
@@ -218,7 +218,7 @@ const Whiteboard = ({ whiteboard }: WhiteboardProps) => {
   const handleSave = async () => {
     const whiteboardData = stageRef.current.toJSON();
     try {
-      await axios.put(`/api/whiteboards/${whiteboard?._id}/save`, {
+      await api.put(`/api/whiteboards/${whiteboard?._id}/save`, {
         data: whiteboardData,
       });
       toast.success("Whiteboard saved successfully!");

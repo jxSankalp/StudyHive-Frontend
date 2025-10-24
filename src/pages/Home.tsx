@@ -10,10 +10,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import type { Group } from "@/types/index";
-import axios from "axios";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button"; // 3. Import Button
+import api from "@/lib/axiosInstance";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function HomePage() {
 
   const fetchGroups = async () => {
     try {
-      const { data } = await axios.get("/api/chat");
+      const { data } = await api.get("/api/chat");
       console.log(data.chats);
       setGroups(Array.isArray(data.chats) ? data.chats : []);
     } catch (error) {

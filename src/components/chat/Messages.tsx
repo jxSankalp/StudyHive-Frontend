@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { socket } from "@/lib/socket";
@@ -54,7 +54,7 @@ const Messages = () => {
 
       setLoading(true);
       try {
-        const response = await axios.get(`/api/messages/${chatId}`);
+        const response = await api.get(`/api/messages/${chatId}`);
         const fetchedMessages: Message[] = response.data;
 
         setMessages(Array.isArray(fetchedMessages) ? fetchedMessages : []);
@@ -112,7 +112,7 @@ const Messages = () => {
     if (!content || !chatId) return;
 
     try {
-      const response = await axios.post("/api/messages", {
+      const response = await api.post("/api/messages", {
         content,
         chatId,
       });

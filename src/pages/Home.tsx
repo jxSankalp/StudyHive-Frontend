@@ -23,7 +23,7 @@ export default function HomePage() {
 
   const fetchGroups = async () => {
     try {
-      const { data } = await api.get("/api/chat");
+      const { data } = await api.get("/chat");
       console.log(data.chats);
       setGroups(Array.isArray(data.chats) ? data.chats : []);
     } catch (error) {

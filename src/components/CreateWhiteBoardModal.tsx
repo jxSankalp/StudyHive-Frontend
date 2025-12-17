@@ -38,7 +38,7 @@ const CreateWhiteboardModal = ({
 
     setLoading(true);
     try {
-      await api.post('/api/whiteboards', {
+      await api.post('/whiteboards', {
         name: whiteboardName,
         groupId: chatId,
       });

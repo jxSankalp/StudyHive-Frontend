@@ -21,7 +21,7 @@ export function GroupOptionsMenu() {
       const query = addUsername.trim();
       if (query) {
         api
-          .get(`/api/users/search`, {
+          .get(`/users/search`, {
             params: { query },
           })
           .then((res) => {
@@ -42,7 +42,7 @@ export function GroupOptionsMenu() {
     if (!newGroupName) return;
 
     try {
-      const { data } = await api.put(`/api/chat/rename`, {
+      const { data } = await api.put(`/chat/rename`, {
         chatId: id,
         chatName: newGroupName,
       });
@@ -75,7 +75,7 @@ export function GroupOptionsMenu() {
 
       console.log(id);
       console.log(userIds);
-      const data = await api.put(`/api/chat/groupadd`, {
+      const data = await api.put(`/chat/groupadd`, {
         chatId: id,
         userIds,
       });

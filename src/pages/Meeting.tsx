@@ -123,11 +123,11 @@ const MeetingPage = () => {
 
     const initClientAndCall = async () => {
       try {
-        const userRes = await fetch("/api/users/me");
+        const userRes = await fetch("/users/me");
         if (!userRes.ok) throw new Error("Failed to fetch user.");
         const dbUser = await userRes.json();
 
-        const tokenRes = await fetch("/api/meet/get-token", {
+        const tokenRes = await fetch("/meet/get-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ clerkId: dbUser.clerkId }),

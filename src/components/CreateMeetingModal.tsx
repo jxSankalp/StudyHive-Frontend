@@ -20,7 +20,7 @@ const CreateMeetingModal = ({ chatId, onSuccess, open, onOpenChange }: Props) =>
   const createMeeting = async () => {
     setLoading(true);
     try {
-      await api.post("/api/meet/create-call", {
+      await api.post("/meet/create-call", {
         chatId,
         meetName,
       });

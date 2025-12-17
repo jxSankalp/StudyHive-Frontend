@@ -18,7 +18,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
       const query = searchQuery.trim();
       if (query) {
         api
-          .get(`/api/users/search`, {
+          .get(`/users/search`, {
             params: { query },
           })
           .then((res) => {
@@ -53,7 +53,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     try {
       const clerkIds = selectedUsers.map((user) => user.clerkId);
 
-      const res = await api.post("/api/chat", {
+      const res = await api.post("/chat", {
         name,
         description,
         users: clerkIds,

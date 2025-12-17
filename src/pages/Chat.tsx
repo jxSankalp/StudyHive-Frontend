@@ -136,7 +136,7 @@ export default function WorkspacePage() {
 
   const fetchNoteById = async (noteId: string) => {
     try {
-      const res = await api.get(`/api/notes/${noteId}`, {
+      const res = await api.get(`/notes/${noteId}`, {
         params: {
           noteId,
         },
@@ -164,14 +164,14 @@ const fetchData = async (tab: TabType) => {
     let res;
 
     if (tab === "meetings") {
-      res = await api.get(`/api/meet/${chatId}`);
+      res = await api.get(`/meet/${chatId}`);
       setAllMeetData(res.data || []); // Make sure this state setter exists
     } 
     else if (tab === "notes") {
-      res = await api.get(`/api/notes`, { params: { chatId } });
+      res = await api.get(`/notes`, { params: { chatId } });
       setAllNotesData(res.data.data || []);
     } else if (tab === "whiteboards") { // New case
-      res = await api.get(`/api/whiteboards/group/${chatId}`);
+      res = await api.get(`/whiteboards/group/${chatId}`);
       setAllWhiteboardsData(res.data.data || []);
     }
   } catch (error) {

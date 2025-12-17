@@ -27,7 +27,7 @@ const CreateNotesModal: React.FC<CreateNotesModalProps> = ({
    
     try {
     
-      const res = await api.post("/api/notes", {
+      const res = await api.post("/notes", {
         name,
         content:"Go on .... ",
         chatId

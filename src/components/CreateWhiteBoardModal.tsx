@@ -25,30 +25,35 @@ const CreateWhiteboardModal = ({
   setShowModal,
   setRefreshKey,
 }: CreateWhiteboardModalProps) => {
+  const { id: groupId } = useParams<{ id: string }>();
   const [whiteboardName, setWhiteboardName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { id: chatId } = useParams();
 
   const handleCreateWhiteboard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!whiteboardName.trim()) {
-      toast.error('Whiteboard name is required.');
+      toast.error('Please enter a whiteboard name');
       return;
     }
 
-    setLoading(true);
+    if (!groupId) {
+      toast.error('Group ID is missing');
+      return;
+    }
+
     try {
+      setLoading(true);
       await api.post('/whiteboards', {
         name: whiteboardName,
-        groupId: chatId,
+        groupId,
       });
-      toast.success('Whiteboard created successfully!');
-      setWhiteboardName('');
+      toast.success('Whiteboard created successfully');
       setShowModal(false);
-      setRefreshKey(Date.now()); // Trigger data refetch
-    } catch (error) {
-      console.error('Failed to create whiteboard:', error);
-      toast.error('Failed to create whiteboard. Please try again.');
+      setWhiteboardName('');
+      setRefreshKey(Math.random());
+    } catch (error: any) {
+      console.error('Error creating whiteboard:', error);
+      toast.error(error.response?.data?.message || 'Failed to create whiteboard');
     } finally {
       setLoading(false);
     }

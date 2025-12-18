@@ -5,14 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import api from "@/lib/axiosInstance";
 import { useParams } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import { socket } from "@/lib/socket";
 
 interface User {
   _id: string;
   username: string;
   photo?: string;
-  clerkId: string;
 }
 
 interface Message {
@@ -26,7 +25,7 @@ var selectedChatCompare: string;
 
 const Messages = () => {
   const { id: chatId } = useParams();
-  const { userId, isLoaded } = useAuth();
+  const { user } = useAuth();
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,15 +37,15 @@ const Messages = () => {
   };
 
   useEffect(() => {
-    if (!chatId || !userId || !isLoaded) return;
+    if (!chatId || !user?._id) return;
 
-    console.log(userId);
+    console.log(user._id);
 
     socket.connect();
-    socket.emit("setup", userId);
+    socket.emit("setup", user._id);
     socket.on("connected", () => setSocketConnected(true));
 
-  }, [userId, isLoaded]);
+  }, [user]);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -54,10 +53,12 @@ const Messages = () => {
 
       setLoading(true);
       try {
-        const response = await api.get(`/api/messages/${chatId}`);
+        const response = await api.get(`/messages/${chatId}`);
         const fetchedMessages: Message[] = response.data;
 
         setMessages(Array.isArray(fetchedMessages) ? fetchedMessages : []);
+        socket.emit("join chat", chatId, user?._id);
+
 
       } catch (error) {
         console.error("Error fetching messages:", error);
@@ -72,7 +73,7 @@ const Messages = () => {
 
   useEffect(() => {
     if (!socketConnected || !chatId) return;
-    socket.emit("join chat", chatId ,userId);
+    socket.emit("join chat", chatId, user?._id);
     selectedChatCompare = chatId;
   }, [chatId, socketConnected]);
   
@@ -112,7 +113,7 @@ const Messages = () => {
     if (!content || !chatId) return;
 
     try {
-      const response = await api.post("/api/messages", {
+      const response = await api.post("/messages", {
         content,
         chatId,
       });
@@ -142,7 +143,7 @@ const Messages = () => {
           <div className="text-center text-gray-500">Loading messages...</div>
         ) : messages.length > 0 ? (
           messages.map((message) => {
-            const isOwn = message.sender.clerkId === userId;
+            const isOwn = message.sender._id === user?._id;
             return (
               <div
                 key={message._id}

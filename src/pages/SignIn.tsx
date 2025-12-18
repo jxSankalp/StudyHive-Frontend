@@ -2,44 +2,39 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth, useSignIn } from "@clerk/clerk-react";
+import { useAuth } from "../context/AuthContext";
+import { toast } from "sonner";
 
 const SignIn: React.FC = () => {
-  const { isLoaded, signIn, setActive } = useSignIn();
-  const { isSignedIn } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isSignedIn) navigate("/");
-  }, [isSignedIn, navigate]);
-
-  if (!isLoaded)
-    return <div className="text-white text-center p-4">Loading...</div>;
+    if (isAuthenticated) navigate("/home");
+  }, [isAuthenticated, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      });
-
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        navigate("/");
-      } else {
-        setError("Sign-in not complete. Try again.");
-      }
+      await login(email, password);
+      toast.success("Logged in successfully!");
+      navigate("/home");
     } catch (err: any) {
       console.error(err);
-      setError(err.errors?.[0]?.longMessage || "Invalid credentials.");
+      const errorMessage = err.response?.data?.message || "Invalid credentials.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,9 +80,10 @@ const SignIn: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="w-full py-2 bg-purple-600 hover:bg-purple-700 transition rounded text-white font-semibold"
+            disabled={loading}
+            className="w-full py-2 bg-purple-600 hover:bg-purple-700 transition rounded text-white font-semibold disabled:opacity-50"
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 

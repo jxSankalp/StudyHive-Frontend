@@ -51,12 +51,12 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     }
 
     try {
-      const clerkIds = selectedUsers.map((user) => user.clerkId);
+      const userIds = selectedUsers.map((user) => user._id);
 
       const res = await api.post("/chat", {
         name,
         description,
-        users: clerkIds,
+        users: userIds,
       });
 
       console.log("hii1");
@@ -80,7 +80,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   };
 
   const handleSelectUser = (user: IUser) => {
-    if (!selectedUsers.find((u: IUser) => u.clerkId === user.clerkId)) {
+    if (!selectedUsers.find((u: IUser) => u._id === user._id)) {
       setSelectedUsers((prev) => [...prev, user]);
     }
     setSearchQuery("");
@@ -88,7 +88,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   };
 
   const handleRemoveUser = (id: String) => {
-    setSelectedUsers((prev) => prev.filter((u: IUser) => u.clerkId !== id));
+    setSelectedUsers((prev) => prev.filter((u: IUser) => u._id !== id));
   };
 
   return (
@@ -129,7 +129,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                 <ul className="absolute z-10 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto">
                   {searchResults.map((user: IUser) => (
                     <li
-                      key={user.clerkId}
+                      key={user._id}
                       className="p-2 hover:bg-gray-700 text-white cursor-pointer"
                       onClick={() => handleSelectUser(user)}
                     >
@@ -144,13 +144,13 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             <div className="flex flex-wrap gap-2">
               {selectedUsers.map((user) => (
                 <div
-                  key={user.clerkId}
+                  key={user._id}
                   className="flex items-center bg-gray-700 text-white px-3 py-1 rounded-full text-sm"
                 >
                   {user.username}
                   <button
                     type="button"
-                    onClick={() => handleRemoveUser(user.clerkId)}
+                    onClick={() => handleRemoveUser(user._id)}
                     className="ml-2 text-gray-400 hover:text-white"
                   >
                     ✕

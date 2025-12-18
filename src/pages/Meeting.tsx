@@ -16,6 +16,7 @@ import type { Call, User } from "@stream-io/video-react-sdk";
 import { Spinner } from "@/components/ui/Spinner";
 
 import "@stream-io/video-react-sdk/dist/css/styles.css";
+import api from "@/lib/axiosInstance";
 
 // --- DARK THEME FIX ---
 // Deeply customized theme ensuring every element has proper visibility
@@ -76,6 +77,8 @@ const MeetingRoom = () => {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
 
+  console.log("MeetingRoom rendering, callingState:", callingState);
+
   const handleLeave = () => {
     navigate(-1);
   };
@@ -93,12 +96,13 @@ const MeetingRoom = () => {
   }
 
   return (
-    // @ts-ignore - For the theme prop
-    <StreamTheme theme={darkTheme} className="h-screen">
-      {/* FIX: Add this comment to resolve the TypeScript error for SpeakerLayout */}
+    // @ts-ignore
+    <StreamTheme className="h-screen w-full bg-gray-900 text-white relative">
       {/* @ts-ignore */}
-      <SpeakerLayout participantsBarPosition="bottom" showLocalParticipant={false} />
-      <CallControls onLeave={handleLeave} />
+      <SpeakerLayout participantsBarPosition="bottom" />
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+        <CallControls onLeave={handleLeave} />
+      </div>
     </StreamTheme>
   );
 };
@@ -123,23 +127,17 @@ const MeetingPage = () => {
 
     const initClientAndCall = async () => {
       try {
-        const userRes = await fetch("/users/me");
-        if (!userRes.ok) throw new Error("Failed to fetch user.");
-        const dbUser = await userRes.json();
+        const userRes = await api.get("/auth/me");
+        const dbUser = userRes.data;
 
-        const tokenRes = await fetch("/meet/get-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clerkId: dbUser.clerkId }),
-        });
-        if (!tokenRes.ok) throw new Error("Failed to fetch token.");
-        const { token } = await tokenRes.json();
+        const tokenRes = await api.post("/meet/get-token", { userId: dbUser._id });
+        const { token } = tokenRes.data;
 
         const apiKey = import.meta.env.VITE_STREAM_API_KEY;
         if (!apiKey) throw new Error("Stream API key is not configured.");
 
         const user: User = {
-          id: dbUser.clerkId,
+          id: dbUser._id,
           name: dbUser.username,
           image: dbUser.image,
         };

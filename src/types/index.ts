@@ -7,13 +7,11 @@ export interface Note {
     _id: string;
     username: string;
     email: string;
-    clerkId: string;
   };
   chat: string;
   createdAt: string;
   updatedAt: string;
 }
-
 
 export type Meeting = {
   id: string;
@@ -24,22 +22,13 @@ export type Meeting = {
   duration: string;
 };
 
-// export type Whiteboard = {
-//   id: string;
-//   title: string;
-//   lastModified: string;
-//   collaborators: number;
-//   thumbnail: string;
-// };
-
-// types/user.ts
 export type Whiteboard = {
-  _id: string; // The unique identifier from MongoDB
-  title: string; // Use 'title' to match the backend Mongoose schema
+  _id: string;
+  title: string;
   groupId: string;
   createdBy: {
     _id: string;
-    username: string; // This needs to be populated from the backend
+    username: string;
   };
   data: any;
   createdAt: string;
@@ -63,6 +52,7 @@ export interface CreateGroupModalProps {
 }
 
 export interface IUser {
-  clerkId: string;
+  _id: string;
   username: string;
+  email: string;
 }

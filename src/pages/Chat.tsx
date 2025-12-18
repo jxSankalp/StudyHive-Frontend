@@ -136,48 +136,38 @@ export default function WorkspacePage() {
 
   const fetchNoteById = async (noteId: string) => {
     try {
-      const res = await api.get(`/notes/${noteId}`, {
-        params: {
-          noteId,
-        },
-      });
+      const res = await api.get(`/notes/${noteId}`);
   
       const notedata = res.data.data as Note;
 
       if (!notedata) {
         console.error(`Note with ID ${noteId} not found`);
-        return
+        return;
       }
       setNoteData(notedata);
 
     } catch (error) {
-      console.error(`Failed to fetch note with ID ${noteId}:`, error);
+      console.error(`Failed to fetch note ${noteId}:`, error);
     }
   };
-  
-const fetchData = async (tab: TabType) => {
-  try {
-    if (tab === "chat" ) {
-      return;
-    }
 
-    let res;
-
-    if (tab === "meetings") {
-      res = await api.get(`/meet/${chatId}`);
-      setAllMeetData(res.data || []); // Make sure this state setter exists
-    } 
-    else if (tab === "notes") {
-      res = await api.get(`/notes`, { params: { chatId } });
-      setAllNotesData(res.data.data || []);
-    } else if (tab === "whiteboards") { // New case
-      res = await api.get(`/whiteboards/group/${chatId}`);
-      setAllWhiteboardsData(res.data.data || []);
+  const fetchData = async (tab: TabType) => {
+    if (!chatId) return;
+    try {
+      if (tab === "notes") {
+        const res = await api.get(`/notes`, { params: { chatId } });
+        setAllNotesData(res.data.data);
+      } else if (tab === "meetings") {
+        const res = await api.get(`/meet/${chatId}`);
+        setAllMeetData(res.data || []);
+      } else if (tab === "whiteboards") {
+        const res = await api.get(`/whiteboards/group/${chatId}`);
+        setAllWhiteboardsData(res.data.data);
+      }
+    } catch (error) {
+      console.error(`Failed to fetch data for ${tab}:`, error);
     }
-  } catch (error) {
-    console.error(`Failed to fetch data for ${tab}:`, error);
-  }
-};
+  };
 
 
   useEffect(() => {

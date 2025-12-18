@@ -29,10 +29,9 @@ const CreateMeetingModal = ({ chatId, onSuccess, open, onOpenChange }: Props) =>
       onSuccess?.();
     } catch (err) {
       console.error("Error creating meeting:", err);
-    } 
-    // finally {
-    //   setLoading(false);
-    // }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

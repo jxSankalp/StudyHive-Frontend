@@ -1,12 +1,15 @@
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import api from "@/lib/axiosInstance";
 
 const Profile = () => {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { user, loading, logout } = useAuth();
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
 
-  if (!isLoaded)
+  if (loading)
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-gray-400 text-lg">Loading...</div>
@@ -22,16 +25,17 @@ const Profile = () => {
 
   const handleUpdate = async () => {
     try {
-      await user.update({ username });
-      alert("Username updated!");
+      await api.put(`/users/${user._id}`, { username });
+      toast.success("Username updated!");
     } catch (err) {
       console.error(err);
-      alert("Failed to update");
+      toast.error("Failed to update");
     }
   };
 
-  const handleLogout = () => {
-    signOut({ redirectUrl: "/sign-in" });
+  const handleLogout = async () => {
+    await logout();
+    navigate("/sign-in");
   };
 
   return (
@@ -42,7 +46,7 @@ const Profile = () => {
         <div className="mb-6">
           <label className="block text-sm text-gray-400 mb-1">Email</label>
           <div className="text-white font-medium bg-gray-700 rounded-md px-3 py-2">
-            {user.primaryEmailAddress?.emailAddress}
+            {user.email}
           </div>
         </div>
 

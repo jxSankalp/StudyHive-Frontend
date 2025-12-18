@@ -3,7 +3,7 @@ import { Trash2 } from "lucide-react";
 import type { Note } from "@/types";
 import { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 import api from "@/lib/axiosInstance";
 
@@ -15,7 +15,7 @@ type NoteCardProps = {
 const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
-  const { userId } = useAuth();
+  const { user } = useAuth();
 
   const editorRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState(note?.content || "");
@@ -26,7 +26,7 @@ const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
     if (!note?._id) return;
 
     try {
-      await api.delete(`/api/notes/${note._id}`, {
+      await api.delete(`/notes/${note._id}`, {
         params: {
           noteId: note._id,
         },
@@ -46,7 +46,7 @@ const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
   useEffect(() => {
     if (!note?._id) return;
 
-    socket.emit("note:join", note._id, userId);
+    socket.emit("note:join", note._id, user?._id);
     const newContent = note.content || "";
 
     setContent(newContent);
@@ -124,6 +124,21 @@ const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
             {note?.name || "Untitled Note"}
           </h1>
           <div className="flex items-center gap-2">
+            <Button
+              onClick={async () => {
+                if (!note?._id) return;
+                try {
+                  await api.put(`/notes/${note._id}`, { content });
+                  toast.success("Note saved successfully");
+                  lastSavedContentRef.current = content;
+                } catch (error) {
+                  toast.error("Failed to save note");
+                }
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Save
+            </Button>
             <Button
               variant="ghost"
               size="icon"

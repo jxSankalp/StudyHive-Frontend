@@ -18,57 +18,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import api from "@/lib/axiosInstance";
 
-// --- DARK THEME FIX ---
-// Deeply customized theme ensuring every element has proper visibility
-const darkTheme = {
-  colors: {
-    // Base colors
-    background: "#121212",
-    "video-background": "#121212",
-    "overlay-background": "#1E1E1E",
-    "panel-background": "#1E1E1E",
-
-    // Text colors
-    text: "#FFFFFF",
-    "text-high-emphasis": "#FFFFFF",
-    "text-low-emphasis": "#B0B0B0",
-    "text-muted": "#AAAAAA",
-
-    // Icon colors
-    icon: "#FFFFFF",
-    "icon-muted": "#BBBBBB",
-
-    // Buttons
-    "button-background": "#2D2D2D",
-    "button-background-hover": "#3A3A3A",
-    "button-text": "#FFFFFF",
-    "button-icon": "#FFFFFF",
-
-    // Menus
-    "menu-background": "#2C2C2E",
-    "menu-background-hover": "#3C3C3E",
-    "menu-text": "#FFFFFF",
-
-    // Participant details
-    "participant-details-background": "rgba(0, 0, 0, 0.6)",
-
-    // Status indicators
-    "accent-primary": "#3B82F6",
-    "accent-danger": "#EF4444",
-    "accent-success": "#10B981",
-  },
-  variants: {
-    button: {
-      hangup: {
-        backgroundColor: "#EF4444",
-        color: "#FFFFFF",
-        "&:hover": {
-          backgroundColor: "#F87171",
-        },
-      },
-    },
-  },
-};
+// --- MEETING ROOM UI ---
 
 // --- MEETING ROOM UI ---
 // --- MEETING ROOM UI ---

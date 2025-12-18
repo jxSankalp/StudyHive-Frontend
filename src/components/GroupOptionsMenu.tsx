@@ -56,7 +56,7 @@ export function GroupOptionsMenu() {
   };
 
   const handleSelectUser = (user: IUser) => {
-    if (!selectedUsers.find((u: IUser) => u.clerkId === user.clerkId)) {
+    if (!selectedUsers.find((u: IUser) => u._id === user._id)) {
       setSelectedUsers((prev) => [...prev, user]);
     }
     setAddUsername("");
@@ -64,14 +64,14 @@ export function GroupOptionsMenu() {
   };
 
   const handleRemoveUser = (id: String) => {
-    setSelectedUsers((prev) => prev.filter((u: IUser) => u.clerkId !== id));
+    setSelectedUsers((prev) => prev.filter((u: IUser) => u._id !== id));
   };
 
   const handleAddUsers = async () => {
     if (selectedUsers.length === 0) return;
 
     try {
-      const userIds = selectedUsers.map((user) => user.clerkId);
+      const userIds = selectedUsers.map((user) => user._id);
 
       console.log(id);
       console.log(userIds);
@@ -153,7 +153,7 @@ export function GroupOptionsMenu() {
                       <ul className="bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto">
                         {searchResults.map((user: IUser) => (
                           <li
-                            key={user.clerkId}
+                            key={user._id}
                             className="p-2 hover:bg-gray-700 text-white cursor-pointer"
                             onClick={() => handleSelectUser(user)}
                           >
@@ -167,13 +167,13 @@ export function GroupOptionsMenu() {
                     <div className="flex flex-wrap gap-2">
                       {selectedUsers.map((user) => (
                         <div
-                          key={user.clerkId}
+                          key={user._id}
                           className="flex items-center bg-gray-700 text-white px-3 py-1 rounded-full text-sm"
                         >
                           {user.username}
                           <button
                             type="button"
-                            onClick={() => handleRemoveUser(user.clerkId)}
+                            onClick={() => handleRemoveUser(user._id)}
                             className="ml-2 text-gray-400 hover:text-white"
                           >
                             ✕

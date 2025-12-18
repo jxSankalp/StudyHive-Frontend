@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import api from "@/lib/axiosInstance";
 
 interface User {
   _id: string;
@@ -30,9 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/auth/me`, {
-        withCredentials: true,
-      });
+      const response = await api.get("/auth/me");
       setUser(response.data);
     } catch (error) {
       setUser(null);
@@ -46,25 +42,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await axios.post(
-      `${API_URL}/api/auth/login`,
-      { email, password },
-      { withCredentials: true }
-    );
+    const response = await api.post("/auth/login", { email, password });
     setUser(response.data);
   };
 
   const register = async (email: string, username: string, password: string) => {
-    const response = await axios.post(
-      `${API_URL}/api/auth/register`,
-      { email, username, password },
-      { withCredentials: true }
-    );
+    const response = await api.post("/auth/register", {
+      email,
+      username,
+      password,
+    });
     setUser(response.data);
   };
 
   const logout = async () => {
-    await axios.post(`${API_URL}/api/auth/logout`, {}, { withCredentials: true });
+    await api.post("/auth/logout");
     setUser(null);
   };
 

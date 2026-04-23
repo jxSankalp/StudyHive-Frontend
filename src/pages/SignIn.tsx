@@ -1,5 +1,4 @@
 // src/pages/SignIn.tsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -29,10 +28,10 @@ const SignIn: React.FC = () => {
       toast.success("Logged in successfully!");
       navigate("/home");
     } catch (err: any) {
-      console.error(err);
-      const errorMessage = err.response?.data?.message || "Invalid credentials.";
-      setError(errorMessage);
-      toast.error(errorMessage);
+      const msg =
+        err?.message || "Invalid credentials. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -42,9 +41,7 @@ const SignIn: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-black px-4">
       <div className="bg-[#111113] p-8 rounded-xl shadow-md w-full max-w-md text-white">
         <h2 className="text-2xl font-bold mb-1">Sign In</h2>
-        <p className="text-sm mb-6 text-gray-400">
-          Welcome back! Please log in.
-        </p>
+        <p className="text-sm mb-6 text-gray-400">Welcome back! Please log in.</p>
 
         {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
 

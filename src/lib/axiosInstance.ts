@@ -1,10 +1,19 @@
 import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+import { supabase } from "./supabaseClient";
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true, // required for cookies/sessions
+  baseURL: import.meta.env.VITE_BACKEND_URL + "/api",
+  withCredentials: false, // cookies no longer used; we send Bearer tokens
+});
+
+// Attach the Supabase access_token to every request
+api.interceptors.request.use(async (config) => {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export default api;

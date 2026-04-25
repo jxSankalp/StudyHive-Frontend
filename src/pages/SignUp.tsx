@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
+import { Activity, Loader2, CheckCircle2 } from "lucide-react";
 
 const SignUp: React.FC = () => {
   const { register, isAuthenticated } = useAuth();
@@ -11,7 +12,6 @@ const SignUp: React.FC = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -27,8 +27,6 @@ const SignUp: React.FC = () => {
 
     try {
       await register(email, username, password);
-      // If Supabase requires email confirmation the session will be null.
-      // In that case we show a "check your email" message.
       setEmailSent(true);
       toast.success("Account created! Check your email to confirm.");
     } catch (err: any) {
@@ -42,86 +40,107 @@ const SignUp: React.FC = () => {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black px-4">
-        <div className="bg-[#111113] p-8 rounded-xl shadow-md w-full max-w-md text-white text-center space-y-4">
-          <h2 className="text-2xl font-bold">Check your email ✉️</h2>
-          <p className="text-gray-400">
-            We sent a confirmation link to <strong>{email}</strong>.<br />
-            Click it to activate your account, then{" "}
-            <Link to="/sign-in" className="text-purple-400 underline">
-              sign in
-            </Link>
-            .
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4 font-sans text-gray-100">
+        <div className="w-full max-w-[360px] text-center">
+          <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+          </div>
+          <h2 className="text-[20px] font-semibold text-white mb-2 tracking-tight">Check your email</h2>
+          <p className="text-[14px] text-gray-400 mb-6 leading-relaxed">
+            We sent a confirmation link to <span className="text-gray-200 font-medium">{email}</span>. Click it to activate your account.
           </p>
+          <Link 
+            to="/sign-in" 
+            className="inline-flex h-9 items-center justify-center px-4 bg-[#1A1A1A] border border-white/10 hover:bg-[#222222] text-white text-[13px] font-medium rounded-md transition-colors w-full"
+          >
+            Return to sign in
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black px-4">
-      <div className="bg-[#111113] p-8 rounded-xl shadow-md w-full max-w-md text-white">
-        <h2 className="text-2xl font-bold mb-1">Sign Up</h2>
-        <p className="text-sm mb-6 text-gray-400">Create an account to continue</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4 font-sans selection:bg-white/20 text-gray-100">
+      <div className="w-full max-w-[360px]">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-10 h-10 bg-[#1A1A1A] border border-white/10 rounded-lg flex items-center justify-center mb-6 shadow-sm">
+            <Activity className="w-5 h-5 text-gray-100" />
+          </div>
+          <h1 className="text-[22px] font-semibold tracking-tight text-white mb-1.5">Create your workspace</h1>
+          <p className="text-[14px] text-gray-400">Enter your details to join StudyHive.</p>
+        </div>
 
-        {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
+        {error && (
+          <div className="mb-6 p-3 rounded-md bg-red-500/10 border border-red-500/20 text-[13px] text-red-400 font-medium">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSignUp} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Username</label>
+          <div className="space-y-1.5">
+            <label htmlFor="username" className="block text-[13px] font-medium text-gray-300">
+              Username
+            </label>
             <input
+              id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 w-full px-3 py-2 bg-[#1c1c1e] border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+              placeholder="johndoe"
               required
+              className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-md text-[14px] text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
             />
           </div>
-          <div>
-            <label className="text-sm font-medium">Email</label>
+
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="block text-[13px] font-medium text-gray-300">
+              Email address
+            </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-3 py-2 bg-[#1c1c1e] border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+              placeholder="name@example.com"
               required
+              className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-md text-[14px] text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
             />
           </div>
-          <div>
-            <label className="text-sm font-medium">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full px-3 py-2 bg-[#1c1c1e] border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-3 text-sm text-gray-400 hover:text-white"
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="block text-[13px] font-medium text-gray-300">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              minLength={6}
+              className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-md text-[14px] text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
+            />
           </div>
+
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-2 bg-purple-600 hover:bg-purple-700 transition rounded text-white font-semibold disabled:opacity-50"
+            disabled={loading || !email || !password || !username}
+            className="w-full h-9 mt-2 flex items-center justify-center bg-white text-black hover:bg-gray-100 font-medium text-[14px] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Creating account..." : "Sign Up"}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : "Sign up"}
           </button>
         </form>
 
-        <p className="text-sm text-gray-400 mt-6">
-          Already have an account?{" "}
-          <Link to="/sign-in" className="text-purple-400 hover:underline">
-            Sign in
-          </Link>
-        </p>
+        <div className="mt-8 pt-6 border-t border-white/10 text-center">
+          <p className="text-[13px] text-gray-400">
+            Already have an account?{" "}
+            <Link to="/sign-in" className="text-white font-medium hover:underline underline-offset-4">
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

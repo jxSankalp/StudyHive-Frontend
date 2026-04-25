@@ -1,5 +1,6 @@
 // src/App.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
+import { FileText, Monitor, Video, Calendar, Folder, Settings } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -7,7 +8,8 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Chat from "./pages/Chat";
 import MeetingPage from "./pages/Meeting";
-import LandingPage from "./pages/LandingPage"; // Import the new landing page
+import LandingPage from "./pages/LandingPage";
+import GroupListPage from "./pages/GroupListPage";
 import { WorkspaceLayout } from "./components/layout/WorkspaceLayout";
 
 function App() {
@@ -51,34 +53,46 @@ function App() {
         element={isAuthenticated ? <MeetingPage /> : <Navigate to="/sign-in" />}
       />
 
-      {/* Additional mock routes for sidebar navigation */}
+      {/* Sidebar nav stub routes */}
       <Route
         path="/chats"
-        element={isAuthenticated ? <WorkspaceLayout><div className="p-8"><h1 className="text-2xl font-bold">All Chats</h1></div></WorkspaceLayout> : <Navigate to="/sign-in" />}
+        element={<Navigate to="/home" replace />}
       />
       <Route
         path="/notes"
-        element={isAuthenticated ? <WorkspaceLayout><div className="p-8"><h1 className="text-2xl font-bold">Notes</h1></div></WorkspaceLayout> : <Navigate to="/sign-in" />}
+        element={isAuthenticated
+          ? <WorkspaceLayout><GroupListPage tab="notes" icon={FileText} label="Notes" description="Select a workspace to view and edit its notes." /></WorkspaceLayout>
+          : <Navigate to="/sign-in" />}
       />
       <Route
         path="/whiteboards"
-        element={isAuthenticated ? <WorkspaceLayout><div className="p-8"><h1 className="text-2xl font-bold">Whiteboards</h1></div></WorkspaceLayout> : <Navigate to="/sign-in" />}
+        element={isAuthenticated
+          ? <WorkspaceLayout><GroupListPage tab="whiteboards" icon={Monitor} label="Whiteboards" description="Select a workspace to open its whiteboards." /></WorkspaceLayout>
+          : <Navigate to="/sign-in" />}
       />
       <Route
         path="/meetings"
-        element={isAuthenticated ? <WorkspaceLayout><div className="p-8"><h1 className="text-2xl font-bold">Meetings</h1></div></WorkspaceLayout> : <Navigate to="/sign-in" />}
+        element={isAuthenticated
+          ? <WorkspaceLayout><GroupListPage tab="meetings" icon={Video} label="Meetings" description="Select a workspace to view and schedule meetings." /></WorkspaceLayout>
+          : <Navigate to="/sign-in" />}
       />
       <Route
         path="/calendar"
-        element={isAuthenticated ? <WorkspaceLayout><div className="p-8"><h1 className="text-2xl font-bold">Calendar</h1></div></WorkspaceLayout> : <Navigate to="/sign-in" />}
+        element={isAuthenticated
+          ? <WorkspaceLayout><div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground"><Calendar className="w-10 h-10 opacity-20" /><p className="text-sm">Calendar coming soon</p></div></WorkspaceLayout>
+          : <Navigate to="/sign-in" />}
       />
       <Route
         path="/files"
-        element={isAuthenticated ? <WorkspaceLayout><div className="p-8"><h1 className="text-2xl font-bold">Files</h1></div></WorkspaceLayout> : <Navigate to="/sign-in" />}
+        element={isAuthenticated
+          ? <WorkspaceLayout><div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground"><Folder className="w-10 h-10 opacity-20" /><p className="text-sm">Files coming soon</p></div></WorkspaceLayout>
+          : <Navigate to="/sign-in" />}
       />
       <Route
         path="/settings"
-        element={isAuthenticated ? <WorkspaceLayout><div className="p-8"><h1 className="text-2xl font-bold">Settings</h1></div></WorkspaceLayout> : <Navigate to="/sign-in" />}
+        element={isAuthenticated
+          ? <WorkspaceLayout><div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground"><Settings className="w-10 h-10 opacity-20" /><p className="text-sm">Settings coming soon</p></div></WorkspaceLayout>
+          : <Navigate to="/sign-in" />}
       />
 
       {/* Fallback route */}

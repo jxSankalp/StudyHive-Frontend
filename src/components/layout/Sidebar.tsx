@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  LayoutDashboard,
   MessageCircle,
   FileText,
   Monitor,
@@ -19,8 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const navItems = [
-  { name: 'Dashboard', path: '/home', icon: LayoutDashboard },
-  { name: 'Chats', path: '/chats', icon: MessageCircle },
+  { name: 'Chats', path: '/home', icon: MessageCircle },
   { name: 'Notes', path: '/notes', icon: FileText },
   { name: 'Whiteboards', path: '/whiteboards', icon: Monitor },
   { name: 'Meetings', path: '/meetings', icon: Video },

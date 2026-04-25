@@ -17,7 +17,7 @@ import api from '@/lib/axiosInstance';
 type CreateWhiteboardModalProps = {
   showModal: boolean;
   setShowModal: (show: boolean) => void;
-  setRefreshKey: (key: number) => void;
+  setRefreshKey: React.Dispatch<React.SetStateAction<number>>;
 };
 
 const CreateWhiteboardModal = ({
@@ -50,7 +50,7 @@ const CreateWhiteboardModal = ({
       toast.success('Whiteboard created successfully');
       setShowModal(false);
       setWhiteboardName('');
-      setRefreshKey(Math.random());
+      setRefreshKey((prev) => prev + 1);
     } catch (error: any) {
       console.error('Error creating whiteboard:', error);
       toast.error(error.response?.data?.message || 'Failed to create whiteboard');

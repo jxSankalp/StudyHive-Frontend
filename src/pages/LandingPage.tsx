@@ -9,7 +9,6 @@ import {
   Users,
   Search,
   CheckCircle2,
-  ChevronRight,
   Menu,
   X,
   Play,

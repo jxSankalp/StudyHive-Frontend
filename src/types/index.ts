@@ -14,7 +14,10 @@ export interface Note {
 }
 
 export type Meeting = {
+  /** Stream call_id — used as the route parameter for /meeting/:id */
   id: string;
+  /** Supabase UUID — used for status-update API calls */
+  meetingDbId?: string;
   name: string;
   participants: number;
   status: "active" | "scheduled" | "ended";

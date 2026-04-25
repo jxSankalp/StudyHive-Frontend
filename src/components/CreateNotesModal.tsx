@@ -26,21 +26,18 @@ const CreateNotesModal: React.FC<CreateNotesModalProps> = ({
 
    
     try {
-    
       const res = await api.post("/notes", {
         name,
-        content:"Go on .... ",
+        content: "Start typing...",
         chatId
       });
 
-      const createdNote = res.data.chat;
-      console.log(createdNote);
+      console.log("Note created:", res.data.data);
 
       toast.success("Note created successfully!");
       setShowModal(false);
       setRefreshKey((prev: number) => prev + 1); 
       form.reset();
-
     } catch (error: any) {
       console.error("Note creation failed:", error);
       toast.error("Failed to create note. Please try again.");

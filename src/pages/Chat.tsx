@@ -27,7 +27,7 @@ import Meetings from "@/components/chat/Meetings";
 // import Whiteboards from "@/components/chat/Whiteboards";
 import type { Note, Meeting, Whiteboard } from "@/types";
 import { GroupOptionsMenu } from "@/components/GroupOptionsMenu";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import CreateNotesModal from "@/components/CreateNotesModal";
 import { format } from "date-fns";
 import CreateMeetingModal from "@/components/CreateMeetingModal";
@@ -106,6 +106,11 @@ export default function WorkspacePage() {
   const [noteData, setNoteData] = useState<Note | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [allWhiteboardsData, setAllWhiteboardsData] = useState<Whiteboard[]>([]);
+  const [workspaceStats, setWorkspaceStats] = useState({
+    chatName: "",
+    totalMembers: 0,
+    totalOnline: 0,
+  });
 
   const tabs = [
     {
@@ -156,16 +161,32 @@ export default function WorkspacePage() {
     try {
       if (tab === "notes") {
         const res = await api.get(`/notes`, { params: { chatId } });
-        setAllNotesData(res.data.data);
+        setAllNotesData(Array.isArray(res.data?.data) ? res.data.data : []);
       } else if (tab === "meetings") {
         const res = await api.get(`/meet/${chatId}`);
-        setAllMeetData(res.data || []);
+        setAllMeetData(Array.isArray(res.data) ? res.data : []);
       } else if (tab === "whiteboards") {
         const res = await api.get(`/whiteboards/group/${chatId}`);
-        setAllWhiteboardsData(res.data.data);
+        setAllWhiteboardsData(Array.isArray(res.data?.data) ? res.data.data : []);
       }
     } catch (error) {
       console.error(`Failed to fetch data for ${tab}:`, error);
+    }
+  };
+
+  const fetchWorkspaceStats = async () => {
+    if (!chatId) return;
+
+    try {
+      const { data } = await api.get(`/chat/${chatId}/stats`);
+      setWorkspaceStats({
+        chatName: data.chatName || "Chat",
+        totalMembers: Number(data.totalMembers) || 0,
+        totalOnline: Number(data.totalOnline) || 0,
+      });
+    } catch (error) {
+      console.error("Failed to fetch chat stats:", error);
+      setWorkspaceStats((prev) => ({ ...prev, chatName: "Chat" }));
     }
   };
 
@@ -174,8 +195,15 @@ export default function WorkspacePage() {
       fetchData(activeTab);
   }, [activeTab, refreshKey]);
 
+  useEffect(() => {
+    fetchWorkspaceStats();
+  }, [chatId]);
+
   const handleCreateNew = (type: TabType) => {
-    console.log(`Creating new ${type}`);
+    if ((type === "notes" || type === "meetings" || type === "whiteboards") && !chatId) {
+      toast.error("Open a valid workspace before creating items.");
+      return;
+    }
 
     if (type === "notes") {
       setShowNotesModal(true);
@@ -187,6 +215,29 @@ export default function WorkspacePage() {
     setShowWhiteboardModal(true); // New condition
   }
   };
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredNotes = allNotesData.filter((note) => {
+    if (!normalizedQuery) return true;
+    return (
+      note.name?.toLowerCase().includes(normalizedQuery) ||
+      note.content?.toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  const filteredMeetings = allMeetData.filter((meeting) => {
+    if (!normalizedQuery) return true;
+    return (
+      meeting.name?.toLowerCase().includes(normalizedQuery) ||
+      meeting.status?.toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  const filteredWhiteboards = allWhiteboardsData.filter((whiteboard) => {
+    if (!normalizedQuery) return true;
+    return whiteboard.title?.toLowerCase().includes(normalizedQuery);
+  });
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -200,21 +251,21 @@ export default function WorkspacePage() {
         );
 
       case "notes":
-        return allNotesData.map((note) => (
+        return filteredNotes.map((note) => (
           <div
             key={note._id}
             onClick={() => {
               setSelectedItem(note._id);
               fetchNoteById(note._id);
             }}
-            className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group ${
+            className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group border ${
               selectedItem === note._id
-                ? "bg-gray-700/50 "
-                : "hover:bg-gray-800/30"
+                ? "bg-elevated border-primary/30"
+                : "bg-surface border-border hover:border-primary/20 hover:bg-elevated/50"
             }`}
           >
             <div className="flex items-start justify-between mb-2">
-              <h3 className="text-white font-medium truncate flex-1">
+              <h3 className="text-foreground font-medium truncate flex-1">
                 {note.name}
               </h3>
               <Button
@@ -238,18 +289,18 @@ export default function WorkspacePage() {
         ));
 
       case "meetings":
-        return allMeetData.map((room) => (
+        return filteredMeetings.map((room) => (
           <div
             key={room.id}
             onClick={() => setSelectedItem(room.id)}
-            className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group ${
+            className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group border ${
               selectedItem === room.id
-                ? "bg-gray-700/50 "
-                : "hover:bg-gray-800/30"
+                ? "bg-elevated border-primary/30"
+                : "bg-surface border-border hover:border-primary/20 hover:bg-elevated/50"
             }`}
           >
             <div className="flex items-start justify-between mb-2">
-              <h3 className="text-white font-medium truncate flex-1">
+              <h3 className="text-foreground font-medium truncate flex-1">
                 {room.name}
               </h3>
               <div
@@ -280,20 +331,20 @@ export default function WorkspacePage() {
         ));
 
       case "whiteboards":
-      return allWhiteboardsData.map((board) => ( // Use the new state
+      return filteredWhiteboards.map((board) => (
         <div
           key={board._id}
           onClick={() => setSelectedItem(board._id)}
-          className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group ${
+          className={`p-4 rounded-xl cursor-pointer transition-all duration-200 group border ${
             selectedItem === board._id
-              ? "bg-gray-700/50 "
-              : "hover:bg-gray-800/30"
+              ? "bg-elevated border-primary/30"
+              : "bg-surface border-border hover:border-primary/20 hover:bg-elevated/50"
           }`}
         >
           <div className="flex space-x-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between mb-1">
-                <h3 className="text-white font-medium truncate">
+                <h3 className="text-foreground font-medium truncate">
                   {board.title}
                 </h3>
                 <Button
@@ -319,7 +370,9 @@ export default function WorkspacePage() {
   };
 
   const getCurrentTabData = () => {
-    if (activeTab === "chat" || activeTab  === "notes") return [];
+    if (activeTab === "notes") return filteredNotes;
+    if (activeTab === "meetings") return filteredMeetings;
+    if (activeTab === "whiteboards") return filteredWhiteboards;
     return [];
   };
 
@@ -334,7 +387,7 @@ export default function WorkspacePage() {
       return (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-24 h-24 bg-elevated rounded-full flex items-center justify-center mx-auto mb-6 border border-border">
               {tabs.find((tab) => tab.id === activeTab)?.icon &&
                 React.createElement(
                   tabs.find((tab) => tab.id === activeTab)!.icon,
@@ -364,13 +417,23 @@ export default function WorkspacePage() {
 
     // Render content based on selected item and active tab
     if (activeTab === "notes") {
-      
-      return <Notes note={noteData} setRefreshKey={setRefreshKey} />;
+      return (
+        <Notes 
+          note={noteData} 
+          setRefreshKey={setRefreshKey} 
+          setSelectedItem={setSelectedItem} 
+        />
+      );
     }
 
     if (activeTab === "meetings") {
       const meeting = allMeetData.find((m) => m.id === selectedItem);
-      return <Meetings meeting={meeting} />;
+      return (
+        <Meetings
+          meeting={meeting}
+          onStatusChange={() => setRefreshKey((k) => k + 1)}
+        />
+      );
     }
 
 
@@ -385,7 +448,7 @@ if (activeTab === "whiteboards") {
             return (
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
-                        <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <div className="w-24 h-24 bg-elevated border border-border rounded-full flex items-center justify-center mx-auto mb-6">
                             {tabs.find((tab) => tab.id === activeTab)?.icon &&
                                 React.createElement(
                                     tabs.find((tab) => tab.id === activeTab)!.icon,
@@ -447,16 +510,16 @@ if (activeTab === "whiteboards") {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 flex">
+    <div className="h-screen bg-background flex selection:bg-primary/30">
       {/* Left Sidebar */}
-      <div className="w-80 bg-gray-900/40 backdrop-blur-xl border-r border-gray-700/30 flex flex-col">
+      <div className="w-80 bg-surface/50 backdrop-blur-xl border-r border-border flex flex-col">
         {/* Sidebar Header */}
-        <div className="p-6 border-b border-gray-700/30">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center space-x-3 mb-6">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/`)}
+              onClick={() => navigate(`/home`)}
               className="text-gray-400"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -477,6 +540,7 @@ if (activeTab === "whiteboards") {
                   onClick={() => {
                     setActiveTab(tab.id);
                     setSelectedItem(null);
+                    setSearchQuery("");
                     fetchData(tab.id);
                   }}
                   initial={false}
@@ -495,7 +559,7 @@ if (activeTab === "whiteboards") {
                   >
                     <IconComponent className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-white font-medium">{tab.label}</span>
+                  <span className="text-foreground font-medium">{tab.label}</span>
                 </motion.button>
               );
             })}
@@ -504,14 +568,14 @@ if (activeTab === "whiteboards") {
 
         {/* Search and Create */}
         {activeTab !== "chat" && (
-          <div className="p-4 border-b border-gray-700/30">
+          <div className="p-4 border-b border-border">
             <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder={`Search ${activeTab}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-gray-800/50 border-gray-700/50 text-white placeholder-gray-500"
+                className="pl-10 bg-elevated/50 border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <Button
@@ -533,9 +597,9 @@ if (activeTab === "whiteboards") {
       <Toaster richColors />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="bg-gray-900/60 backdrop-blur-xl border-b border-gray-700/30 p-6">
+        <div className="bg-surface/80 backdrop-blur-xl border-b border-border p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div
@@ -553,11 +617,13 @@ if (activeTab === "whiteboards") {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">
-                  {tabs.find((tab) => tab.id === activeTab)?.label}
+                  {activeTab === "chat"
+                    ? workspaceStats.chatName || "Chat"
+                    : tabs.find((tab) => tab.id === activeTab)?.label}
                 </h1>
                 <p className="text-gray-400">
                   {activeTab === "chat"
-                    ? "1,247 members • 89 online"
+                    ? `${workspaceStats.totalMembers} members • ${workspaceStats.totalOnline} online`
                     : `${getCurrentTabData().length} ${activeTab} available`}
                 </p>
               </div>

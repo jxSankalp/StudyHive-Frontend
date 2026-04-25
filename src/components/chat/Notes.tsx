@@ -10,11 +10,12 @@ import api from "@/lib/axiosInstance";
 type NoteCardProps = {
   note: Note | null;
   setRefreshKey: React.Dispatch<React.SetStateAction<number>>;
+  setSelectedItem: (id: string | null) => void;
 };
 
 const socket = io(import.meta.env.VITE_BACKEND_URL);
 
-const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
+const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
   const { user } = useAuth();
 
   const editorRef = useRef<HTMLDivElement>(null);
@@ -34,6 +35,7 @@ const Notes = ({ note, setRefreshKey }: NoteCardProps) => {
       console.log("Note deleted successfully");
       toast.success("Note deleted successfully");
       setRefreshKey((prev: number) => prev + 1);
+      setSelectedItem(null);
     } catch (error) {
       console.error("Error deleting note:", error);
       toast.error(

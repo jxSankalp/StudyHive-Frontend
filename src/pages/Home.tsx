@@ -1,190 +1,268 @@
 import { useEffect, useState } from "react";
 import {
-  Search,
   MessageCircle,
   Users,
   Plus,
-  Home, // 1. Import Home icon
-  User, // 2. Import User icon for Profile
+  FileText,
+  Video,
+  Activity,
+  ArrowRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import type { Group } from "@/types/index";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import { Toaster } from "sonner";
-import { Button } from "@/components/ui/button"; // 3. Import Button
+import { Button } from "@/components/ui/button";
 import api from "@/lib/axiosInstance";
+import { motion } from "framer-motion";
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
   const [groups, setGroups] = useState<Group[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userStats, setUserStats] = useState({
+    activeGroups: 0,
+    messagesSent: 0,
+    whiteboardsCreated: 0,
+    notesCreated: 0,
+  });
 
-  const fetchGroups = async () => {
+  const fetchGroupsAndStats = async () => {
     try {
-      const { data } = await api.get("/chat");
-      console.log(data.chats);
-      setGroups(Array.isArray(data.chats) ? data.chats : []);
+      setIsLoading(true);
+      const [chatRes, statsRes] = await Promise.all([
+        api.get("/chat"),
+        api.get("/users/me/stats")
+      ]);
+
+      const normalizedGroups: Group[] = (Array.isArray(chatRes.data.chats)
+        ? chatRes.data.chats
+        : []
+      ).map((chat: any) => ({
+        _id: chat.id,
+        chatName: chat.chat_name,
+        description: chat.description || "No description",
+        usercount: Array.isArray(chat.chat_members) ? chat.chat_members.length : 0,
+        lastMessage: chat.messages?.content || "No messages yet",
+      }));
+
+      setGroups(normalizedGroups);
+      if (statsRes.data) {
+        setUserStats(statsRes.data);
+      }
     } catch (error) {
-      console.error("Failed to fetch groups:", error);
+      console.error("Failed to fetch groups or stats:", error);
       setGroups([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchGroups();
+    fetchGroupsAndStats();
   }, []);
-
-  const filteredGroups = Array.isArray(groups)
-    ? groups.filter(
-        (group) =>
-          group?.chatName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          group?.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
 
   const handleGroupClick = (id: string) => {
     navigate(`/chat/${id}`);
   };
 
-  // --- 4. Handler for Home Button ---
-  const handleHomeClick = () => {
-    navigate("/"); // Navigate to the root route (landing page)
-  };
-
-  // --- 5. Handler for Profile Button ---
-  const handleProfileClick = () => {
-    navigate("/profile"); // Navigate to the profile page
-  };
+  // Real analytics data
+  const stats = [
+    { label: "Active Groups", value: groups.length.toString(), icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
+    { label: "Messages Sent", value: userStats.messagesSent.toString(), icon: MessageCircle, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+    { label: "Whiteboards", value: userStats.whiteboardsCreated.toString(), icon: Activity, color: "text-amber-400", bg: "bg-amber-400/10" },
+    { label: "Notes Created", value: userStats.notesCreated.toString(), icon: FileText, color: "text-purple-400", bg: "bg-purple-400/10" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 relative">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.1),transparent_50%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,0.1)_50%,transparent_75%)] bg-[length:60px_60px]" />
-
+    <div className="min-h-full p-8 max-w-[1600px] mx-auto">
       <Toaster richColors />
 
-      {/* --- 6. Add Home Button (Top Left) --- */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleHomeClick}
-        className="absolute top-6 left-6 z-20 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-        aria-label="Go to Landing Page"
-      >
-        <Home className="w-6 h-6" />
-      </Button>
-
-      {/* --- 7. Add Profile Button (Top Right) --- */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleProfileClick}
-        className="absolute top-6 right-6 z-20 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-        aria-label="Go to Profile"
-      >
-        <User className="w-6 h-6" />
-      </Button>
-
-      <div className="relative z-10 container mx-auto px-4 py-16">
-        {/* Header - Added padding to prevent overlap */}
-        <div className="text-center mb-16 pt-8">
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent mb-4">
-            Study Hive
-          </h1>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            From Notes to Whiteboards — All in One Study Space.
-          </p>
-        </div>
-
-        {/* Search */}
-        <div className="max-w-2xl mx-auto mb-16">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
-            <div className="relative bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-2">
-              <div className="flex items-center space-x-4">
-                <Search className="w-6 h-6 text-gray-400 ml-4" />
-                <input
-                  type="text"
-                  placeholder="Search chat groups..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 bg-transparent border-none text-white placeholder-gray-400 text-lg focus:ring-0 focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {/* Create New Group Card */}
-          <div
+      {/* Header section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <h1 className="text-3xl font-semibold tracking-tight mb-2">Good Evening, Student</h1>
+          <p className="text-muted-foreground">Here is what's happening in your workspace today.</p>
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <Button 
             onClick={() => setShowModal(true)}
-            className="group cursor-pointer bg-gray-900/60 backdrop-blur-xl border border-gray-700/30 rounded-3xl p-8 flex items-center justify-center hover:border-gray-600/50 hover:scale-105 transition-all duration-300"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 rounded-xl gap-2 h-11 px-6"
           >
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4">
-                <Plus className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-white">
-                Create New Group
-              </h3>
-            </div>
-          </div>
+            <Plus className="w-4 h-4" />
+            New Workspace
+          </Button>
+        </motion.div>
+      </div>
 
-          {/* Group Cards */}
-          {filteredGroups.map((group) => {
-            const IconComponent = MessageCircle;
-            return (
-              <div
-                key={group._id}
-                onClick={() => handleGroupClick(group._id)}
-                className="group cursor-pointer transform hover:scale-105 transition-all duration-300"
-              >
-                <div className="relative">
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-r ${group.color} rounded-3xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300`}
-                  />
-                  <div className="relative bg-gray-900/60 backdrop-blur-xl border border-gray-700/30 rounded-3xl p-8 hover:border-gray-600/50 transition-all duration-300">
-                    <div
-                      className={clsx(
-                        "w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300",
-                        `bg-gradient-to-r ${group.color}`
-                      )}
-                    >
-                      <IconComponent className="w-8 h-8 text-white" />
+      {/* Analytics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {stats.map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: i * 0.1 }}
+            className="glass-card p-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", stat.bg)}>
+                <stat.icon className={clsx("w-6 h-6", stat.color)} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                <h3 className="text-2xl font-bold mt-1 tracking-tight">{stat.value}</h3>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content Area (Left: Groups & Recent Activity) */}
+        <div className="lg:col-span-2 space-y-8">
+          <motion.div
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                Recent Workspaces
+              </h2>
+              <Button variant="ghost" className="text-sm text-muted-foreground hover:text-foreground" onClick={() => navigate('/chats')}>
+                View all
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {isLoading ? (
+                <div className="col-span-full py-12 flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : groups.length === 0 ? (
+                <div className="col-span-full glass-panel p-12 flex flex-col items-center justify-center text-center border-dashed border-border">
+                  <div className="w-16 h-16 bg-elevated rounded-2xl flex items-center justify-center mb-4">
+                    <MessageCircle className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">No active workspaces</h3>
+                  <p className="text-muted-foreground text-sm max-w-sm mb-6">Create a new group to start chatting, sharing notes, and collaborating with others.</p>
+                  <Button onClick={() => setShowModal(true)} variant="outline" className="rounded-xl border-border hover:bg-elevated">
+                    Create your first workspace
+                  </Button>
+                </div>
+              ) : (
+                groups.map((group, index) => (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: 0.1 * index }}
+                    key={group._id}
+                    onClick={() => handleGroupClick(group._id)}
+                    className="glass-card p-5 cursor-pointer group"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-indigo-500/20 group-hover:scale-105 transition-transform">
+                        <MessageCircle className="w-6 h-6 text-indigo-400" />
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-surface border border-border px-2.5 py-1 rounded-full text-xs font-medium">
+                        <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>{group.usercount}</span>
+                      </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-3">
+                    
+                    <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-1">
                       {group.chatName}
                     </h3>
-                    <p className="text-gray-400 mb-6">{group.description}</p>
-                    <div className="flex justify-between text-sm text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {group.usercount} members
-                      </div>
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    </div>
-                    <p className="text-gray-500 text-sm mt-4 border-t border-gray-700/30 pt-2 truncate">
-                      {group.lastMessage}
+                    <p className="text-sm text-muted-foreground line-clamp-2 h-10 mb-4">
+                      {group.description}
                     </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                    
+                    <div className="pt-4 border-t border-border flex items-center justify-between">
+                      <div className="flex -space-x-2">
+                         {/* Mock avatars */}
+                        {[1,2,3].map(i => (
+                          <img key={i} src={`https://api.dicebear.com/7.x/notionists/svg?seed=${group._id}${i}`} className="w-7 h-7 rounded-full border-2 border-elevated bg-surface" alt="member" />
+                        ))}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300">
+                        Open <ArrowRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </motion.div>
         </div>
 
-        {/* Modal */}
-        <CreateGroupModal
-          showModal={showModal}
-          setShowModal={setShowModal}
-          onGroupCreated={fetchGroups}
-        />
+        {/* Side Panel (Upcoming Meetings & Quick Actions) */}
+        <div className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="glass-panel p-6"
+          >
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Video className="w-5 h-5 text-indigo-400" />
+              Meetings
+            </h3>
+            
+            {groups.length === 0 ? (
+              <div className="py-8 flex flex-col items-center text-center gap-2">
+                <Video className="w-8 h-8 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Join a workspace to schedule meetings</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {groups.slice(0, 3).map(group => (
+                  <div
+                    key={group._id}
+                    onClick={() => navigate(`/chat/${group._id}`)}
+                    className="p-3 rounded-xl bg-elevated border border-border hover:border-primary/30 transition-colors cursor-pointer flex items-center gap-3 group"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                      <Video className="w-4 h-4 text-indigo-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{group.chatName}</p>
+                      <p className="text-xs text-muted-foreground">Open to schedule</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <Button
+              variant="outline"
+              className="w-full mt-4 rounded-xl border-border"
+              onClick={() => groups.length > 0 ? navigate(`/chat/${groups[0]._id}`) : setShowModal(true)}
+            >
+              {groups.length > 0 ? 'Go to Meetings' : 'Create a Workspace First'}
+            </Button>
+          </motion.div>
+        </div>
       </div>
+
+      <CreateGroupModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        onGroupCreated={fetchGroupsAndStats}
+      />
     </div>
   );
 }

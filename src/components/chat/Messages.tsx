@@ -19,9 +19,40 @@ interface Message {
   sender: User;
   content: string;
   createdAt: string;
+  chatId: string;
 }
 
-var selectedChatCompare: string;
+interface RawMessage {
+  id?: string;
+  _id?: string;
+  sender?: {
+    id?: string;
+    _id?: string;
+    username?: string;
+    photo?: string;
+  };
+  content?: string;
+  created_at?: string;
+  createdAt?: string;
+  chat_id?: string;
+  chatId?: string;
+  chat?: {
+    id?: string;
+    _id?: string;
+  };
+}
+
+const normalizeMessage = (raw: RawMessage): Message => ({
+  _id: raw._id || raw.id || crypto.randomUUID(),
+  sender: {
+    _id: raw.sender?._id || raw.sender?.id || "",
+    username: raw.sender?.username || "Unknown",
+    photo: raw.sender?.photo,
+  },
+  content: raw.content || "",
+  createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+  chatId: raw.chatId || raw.chat_id || raw.chat?._id || raw.chat?.id || "",
+});
 
 const Messages = () => {
   const { id: chatId } = useParams();
@@ -31,21 +62,53 @@ const Messages = () => {
   const [loading, setLoading] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const selectedChatCompareRef = useRef<string>("");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
-    if (!chatId || !user?._id) return;
-
-    console.log(user._id);
+    if (!user?._id) return;
 
     socket.connect();
     socket.emit("setup", user._id);
-    socket.on("connected", () => setSocketConnected(true));
 
-  }, [user]);
+    const handleConnected = () => setSocketConnected(true);
+    socket.on("connected", handleConnected);
+
+    return () => {
+      socket.off("connected", handleConnected);
+    };
+  }, [user?._id]);
+
+  useEffect(() => {
+    if (!chatId) return;
+    selectedChatCompareRef.current = chatId;
+  }, [chatId]);
+
+  useEffect(() => {
+    if (!socketConnected || !chatId) return;
+    socket.emit("join chat", chatId, user?._id);
+    selectedChatCompareRef.current = chatId;
+  }, [chatId, socketConnected, user?._id]);
+
+  useEffect(() => {
+    const handleMessageReceived = (rawMessage: RawMessage) => {
+      const incoming = normalizeMessage(rawMessage);
+      const currentChatId = selectedChatCompareRef.current;
+
+      if (!currentChatId || incoming.chatId !== currentChatId) return;
+
+      setMessages((prevMessages) => [...prevMessages, incoming]);
+    };
+
+    socket.on("message recieved", handleMessageReceived);
+
+    return () => {
+      socket.off("message recieved", handleMessageReceived);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -54,12 +117,12 @@ const Messages = () => {
       setLoading(true);
       try {
         const response = await api.get(`/messages/${chatId}`);
-        const fetchedMessages: Message[] = response.data;
+        const fetchedMessages = Array.isArray(response.data)
+          ? response.data.map((item: RawMessage) => normalizeMessage(item))
+          : [];
 
-        setMessages(Array.isArray(fetchedMessages) ? fetchedMessages : []);
-        socket.emit("join chat", chatId, user?._id);
-
-
+        setMessages(fetchedMessages);
+        selectedChatCompareRef.current = chatId;
       } catch (error) {
         console.error("Error fetching messages:", error);
       } finally {
@@ -68,39 +131,7 @@ const Messages = () => {
     };
 
     fetchMessages();
-    selectedChatCompare = chatId as string;
   }, [chatId]);
-
-  useEffect(() => {
-    if (!socketConnected || !chatId) return;
-    socket.emit("join chat", chatId, user?._id);
-    selectedChatCompare = chatId;
-  }, [chatId, socketConnected]);
-  
-
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleMessageReceived = (
-      newMessageRecieved: Message & { chat: { _id: string } }
-    ) => {
-      if (
-        !selectedChatCompare ||
-        selectedChatCompare !== newMessageRecieved.chat._id
-      ) {
-        console.log("Message received in a different chat, not updating UI");
-      } else {
-        setMessages((prevMessages) => [...prevMessages, newMessageRecieved]);
-        // console.log(newMessageRecieved.content);
-      }
-    };
-
-    socket.on("message recieved", handleMessageReceived);
-
-    return () => {
-      socket.off("message recieved", handleMessageReceived); // Clean up on unmount
-    };
-  }, []);
 
   useEffect(() => {
     if (!loading && messages.length > 0) {
@@ -118,11 +149,14 @@ const Messages = () => {
         chatId,
       });
 
-      const newMsg: Message = response.data;
+      const newMsg = normalizeMessage(response.data);
       setMessages((prev = []) => [...prev, newMsg]);
       setNewMessage("");
 
-      socket.emit("new message", newMsg);
+      socket.emit("new message", {
+        ...newMsg,
+        chat_id: newMsg.chatId,
+      });
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -137,7 +171,6 @@ const Messages = () => {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {loading ? (
           <div className="text-center text-gray-500">Loading messages...</div>
@@ -155,9 +188,7 @@ const Messages = () => {
                   }`}
                 >
                   <Avatar className="w-10 h-10">
-                    <AvatarImage
-                      src={message.sender.photo || "/placeholder.svg"}
-                    />
+                    <AvatarImage src={message.sender.photo || "/placeholder.svg"} />
                     <AvatarFallback>
                       {message.sender.username?.charAt(0)}
                     </AvatarFallback>
@@ -196,7 +227,6 @@ const Messages = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
       <div className="bg-gray-900/60 backdrop-blur-xl border-t border-gray-700/30 p-6">
         <div className="flex items-end space-x-4">
           <div className="flex-1">

@@ -18,12 +18,14 @@ import type { Whiteboard as WhiteboardType } from "@/types";
 import { io } from "socket.io-client";
 import { toast } from "sonner";
 import api from "@/lib/axiosInstance";
+import { useAuth } from "@/context/AuthContext";
 
 type WhiteboardProps = {
   whiteboard?: WhiteboardType;
 };
 
 const Whiteboard = ({ whiteboard }: WhiteboardProps) => {
+  const { user } = useAuth();
   const [tool, setTool] = useState("pen");
   const [lines, setLines] = useState<any[]>([]);
   const isDrawing = useRef(false);
@@ -62,7 +64,7 @@ const Whiteboard = ({ whiteboard }: WhiteboardProps) => {
 
     socket.on("connect", () => {
       console.log("Connected to socket server");
-      socket.emit("whiteboard:join", whiteboard._id, "your-user-id");
+      socket.emit("whiteboard:join", whiteboard._id, user?._id || "anonymous");
     });
 
     socket.on("whiteboard:update", (data: any) => {
@@ -82,19 +84,19 @@ const Whiteboard = ({ whiteboard }: WhiteboardProps) => {
       try {
         const response = await api.get(`/whiteboards/${whiteboard._id}`);
         const savedData = response.data.data.data;
-// ...
 
-
-        if (savedData) {
+        if (savedData && Object.keys(savedData).length > 0) {
           try {
-            const konvaData = JSON.parse(savedData);
-            const layer = konvaData.children.find(
-              (child: any) => child.className === "Layer"
-            );
-            if (layer && layer.children) {
-              setLines(layer.children);
-              historyRef.current = [layer.children];
-              setHistoryStep(0);
+            const konvaData = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+            if (konvaData.children) {
+              const layer = konvaData.children.find(
+                (child: any) => child.className === "Layer"
+              );
+              if (layer && layer.children) {
+                setLines(layer.children);
+                historyRef.current = [layer.children];
+                setHistoryStep(0);
+              }
             }
           } catch (e) {
             console.error("Failed to parse Konva JSON data:", e);

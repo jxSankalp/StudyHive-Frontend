@@ -4,7 +4,7 @@ import { Video, Users, Clock, Calendar, Loader2 } from "lucide-react";
 import type { Meeting } from "@/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import api from "@/lib/axiosInstance";
+import api, { getApiErrorMessage } from "@/lib/axiosInstance";
 
 type MeetingProps = {
   meeting?: Meeting;
@@ -28,7 +28,7 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
 
   if (!meeting) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500">
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <p>Select a meeting from the sidebar to view details.</p>
       </div>
     );
@@ -46,10 +46,8 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
       });
       toast.success("Meeting marked as ended.");
       onStatusChange?.();
-    } catch (err: any) {
-      toast.error(
-        err?.response?.data?.error || "Failed to update meeting status."
-      );
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, "Failed to update meeting status."));
     } finally {
       setUpdatingStatus(false);
     }
@@ -61,7 +59,7 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
         {/* ── Header ─────────────────────────────────────────── */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-3xl font-bold text-white truncate">
+            <h1 className="text-3xl font-bold text-foreground truncate">
               {meeting.name}
             </h1>
             <div className="mt-2 flex items-center gap-2">
@@ -90,7 +88,7 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
                 </Button>
               </Link>
             )}
-            {meeting.status === "active" && (
+            {meeting.status === "active" && meeting.canManage && (
               <Button
                 variant="outline"
                 className="border-red-700 text-red-400 hover:bg-red-900/30 gap-2"
@@ -107,8 +105,8 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
         </div>
 
         {/* ── Details Card ────────────────────────────────────── */}
-        <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-700/40 rounded-2xl p-8">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-6">
+        <div className="bg-surface border border-border shadow-sm rounded-2xl p-8">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-6">
             Meeting Details
           </h2>
           <div className="grid grid-cols-2 gap-8">
@@ -117,10 +115,10 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
                 <Users className="w-5 h-5 text-indigo-400" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Participants</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs text-muted-foreground mb-1">Participants</p>
+                <p className="text-lg font-semibold text-foreground">
                   {meeting.participants}{" "}
-                  <span className="text-sm font-normal text-gray-400">
+                  <span className="text-sm font-normal text-muted-foreground">
                     {meeting.participants === 1 ? "person" : "people"}
                   </span>
                 </p>
@@ -132,8 +130,8 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
                 <Clock className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Duration</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs text-muted-foreground mb-1">Duration</p>
+                <p className="text-lg font-semibold text-foreground">
                   {meeting.duration}
                 </p>
               </div>
@@ -144,8 +142,8 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
                 <Calendar className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Scheduled Time</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs text-muted-foreground mb-1">Scheduled Time</p>
+                <p className="text-lg font-semibold text-foreground">
                   {meeting.scheduledTime}
                 </p>
               </div>
@@ -156,8 +154,8 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
                 <Video className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Room ID</p>
-                <p className="text-sm font-mono text-gray-300 break-all">
+                <p className="text-xs text-muted-foreground mb-1">Room ID</p>
+                <p className="text-sm font-mono text-foreground/80 break-all">
                   {meeting.id}
                 </p>
               </div>
@@ -167,12 +165,12 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
 
         {/* ── Join CTA (when active) ───────────────────────────── */}
         {meeting.status === "active" && (
-          <div className="rounded-2xl border border-emerald-600/30 bg-emerald-950/30 p-6 flex items-center justify-between gap-4">
+          <div className="rounded-2xl border border-emerald-500/35 bg-emerald-500/10 p-6 flex items-center justify-between gap-4">
             <div>
-              <p className="text-emerald-300 font-semibold">
+              <p className="text-emerald-700 dark:text-emerald-300 font-semibold">
                 This meeting is live right now
               </p>
-              <p className="text-emerald-700 text-sm mt-1">
+              <p className="text-emerald-700 dark:text-emerald-200 text-sm mt-1">
                 Click Join Meeting to enter the video call.
               </p>
             </div>
@@ -187,11 +185,11 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
 
         {/* ── Ended state ─────────────────────────────────────── */}
         {meeting.status === "ended" && (
-          <div className="rounded-2xl border border-gray-700/30 bg-gray-900/30 p-6 text-center">
-            <p className="text-gray-500 font-medium">
+          <div className="rounded-2xl border border-border bg-muted/50 p-6 text-center">
+            <p className="text-muted-foreground font-medium">
               This meeting has ended.
             </p>
-            <p className="text-gray-600 text-sm mt-1">
+            <p className="text-muted-foreground/80 text-sm mt-1">
               You can view the details above for reference.
             </p>
           </div>

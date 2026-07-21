@@ -5,10 +5,10 @@ import type { LucideIcon } from "lucide-react";
 import api from "@/lib/axiosInstance";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import { motion } from "framer-motion";
-import type { Group } from "@/types/index";
+import type { ApiChat, Group } from "@/types/index";
 
 interface GroupListPageProps {
-  tab: "notes" | "meetings" | "whiteboards";
+  tab: "chat" | "notes" | "meetings" | "whiteboards";
   icon: LucideIcon;
   label: string;
   description: string;
@@ -19,13 +19,15 @@ export default function GroupListPage({ tab, icon: Icon, label, description }: G
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const fetchGroups = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get("/chat");
+      setLoadError(false);
+      const res = await api.get<{ chats: ApiChat[] }>("/chat");
       const normalized: Group[] = (Array.isArray(res.data.chats) ? res.data.chats : []).map(
-        (chat: any) => ({
+        (chat) => ({
           _id: chat.id,
           chatName: chat.chat_name,
           description: chat.description || "No description",
@@ -36,6 +38,7 @@ export default function GroupListPage({ tab, icon: Icon, label, description }: G
       setGroups(normalized);
     } catch {
       setGroups([]);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +76,14 @@ export default function GroupListPage({ tab, icon: Icon, label, description }: G
       )}
 
       {/* Empty */}
-      {!isLoading && groups.length === 0 && (
+      {!isLoading && loadError && (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <p className="text-sm text-red-400 mb-4">Workspaces could not be loaded.</p>
+          <button onClick={fetchGroups} className="h-9 px-4 text-sm bg-elevated border border-border rounded-lg">Try again</button>
+        </div>
+      )}
+
+      {!isLoading && !loadError && groups.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-14 h-14 bg-elevated rounded-xl flex items-center justify-center mb-4 border border-border">
             <MessageCircle className="w-7 h-7 text-muted-foreground/40" />
@@ -90,7 +100,7 @@ export default function GroupListPage({ tab, icon: Icon, label, description }: G
       )}
 
       {/* Group list */}
-      {!isLoading && groups.length > 0 && (
+      {!isLoading && !loadError && groups.length > 0 && (
         <div className="space-y-2">
           {groups.map((group, i) => (
             <motion.button

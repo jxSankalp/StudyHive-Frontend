@@ -2,10 +2,10 @@ import { Button } from "../ui/button";
 import { Trash2 } from "lucide-react";
 import type { Note } from "@/types";
 import { useRef, useEffect, useState } from "react";
-import io from "socket.io-client";
-import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
-import api from "@/lib/axiosInstance";
+import api, { getApiErrorMessage } from "@/lib/axiosInstance";
+import { socket } from "@/lib/socket";
+import { useAuth } from "@/context/AuthContext";
 
 type NoteCardProps = {
   note: Note | null;
@@ -13,14 +13,12 @@ type NoteCardProps = {
   setSelectedItem: (id: string | null) => void;
 };
 
-const socket = io(import.meta.env.VITE_BACKEND_URL);
-
 const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
   const { user } = useAuth();
-
   const editorRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState(note?.content || "");
-  const [lastSentContent, setLastSentContent] = useState("");
+  const contentRef = useRef(note?.content || "");
+  const lastSentContentRef = useRef("");
   const lastSavedContentRef = useRef<string>("");
 
   const handleDelete = async () => {
@@ -32,7 +30,6 @@ const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
           noteId: note._id,
         },
       });
-      console.log("Note deleted successfully");
       toast.success("Note deleted successfully");
       setRefreshKey((prev: number) => prev + 1);
       setSelectedItem(null);
@@ -48,17 +45,25 @@ const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
   useEffect(() => {
     if (!note?._id) return;
 
-    socket.emit("note:join", note._id, user?._id);
+    const joinNote = () => socket.emit("note:join", note._id);
+    socket.on("connect", joinNote);
+    socket.on("connected", joinNote);
+    socket.connect();
+    if (socket.connected) joinNote();
     const newContent = note.content || "";
 
     setContent(newContent);
-    setLastSentContent(newContent);
+    contentRef.current = newContent;
+    lastSentContentRef.current = newContent;
+    lastSavedContentRef.current = newContent;
     if (editorRef.current) {
       editorRef.current.innerText = newContent;
     }
 
     return () => {
       socket.emit("note:leave", note._id);
+      socket.off("connect", joinNote);
+      socket.off("connected", joinNote);
     };
   }, [note]);
 
@@ -67,13 +72,14 @@ const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
     if (editorRef.current) {
       const newContent = editorRef.current.innerText;
       setContent(newContent);
+      contentRef.current = newContent;
 
-      if (note?._id && newContent !== lastSentContent) {
+      if (note?._id && newContent !== lastSentContentRef.current) {
         socket.emit("note:update", {
           noteId: note._id,
           content: newContent,
         });
-        setLastSentContent(newContent);
+        lastSentContentRef.current = newContent;
       }
     }
   };
@@ -81,17 +87,15 @@ const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
   useEffect(() => {
     if (!note?._id) return;
 
-    const interval = setInterval(() => {
+    const timer = window.setTimeout(() => {
       if (content !== lastSavedContentRef.current) {
-        socket.emit("note:save", {
-          noteId: note._id,
-          content,
-        });
-        lastSavedContentRef.current = content;
+        api.put(`/notes/${note._id}`, { content })
+          .then(() => { lastSavedContentRef.current = content; })
+          .catch((error: unknown) => console.error("Autosave failed:", error));
       }
-    }, 2000);
+    }, 1500);
 
-    return () => clearInterval(interval);
+    return () => window.clearTimeout(timer);
   }, [note?._id, content]);
 
   useEffect(() => {
@@ -104,6 +108,8 @@ const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
     }) => {
       if (note?._id === noteId && newContent !== content) {
         setContent(newContent);
+        contentRef.current = newContent;
+        lastSentContentRef.current = newContent;
         if (editorRef.current) {
           editorRef.current.innerText = newContent;
         }
@@ -133,15 +139,15 @@ const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
                   await api.put(`/notes/${note._id}`, { content });
                   toast.success("Note saved successfully");
                   lastSavedContentRef.current = content;
-                } catch (error) {
-                  toast.error("Failed to save note");
+                } catch (error: unknown) {
+                  toast.error(getApiErrorMessage(error, "Failed to save note"));
                 }
               }}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               Save
             </Button>
-            <Button
+            {note?.createdBy?._id === user?._id && <Button
               variant="ghost"
               size="icon"
               className="text-gray-400 hover:text-black transition duration-200"
@@ -149,7 +155,7 @@ const Notes = ({ note, setRefreshKey, setSelectedItem }: NoteCardProps) => {
               onClick={handleDelete}
             >
               <Trash2 className="w-5 h-5" />
-            </Button>
+            </Button>}
           </div>
         </div>
 

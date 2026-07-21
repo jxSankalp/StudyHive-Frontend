@@ -4,13 +4,23 @@ import App from "./App.tsx";
 import "./index.css";
 import { AuthProvider } from "./context/AuthContext";
 import { BrowserRouter } from "react-router-dom";
+import { ThemeProvider } from "./context/ThemeContext";
+
+const savedTheme = localStorage.getItem("studyhive-theme");
+const initialTheme = savedTheme === "light" || savedTheme === "dark"
+  ? savedTheme
+  : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+document.documentElement.classList.toggle("dark", initialTheme === "dark");
+document.documentElement.style.colorScheme = initialTheme;
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

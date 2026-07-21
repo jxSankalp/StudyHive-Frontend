@@ -12,7 +12,7 @@ import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import api from '@/lib/axiosInstance';
+import api, { getApiErrorMessage } from '@/lib/axiosInstance';
 
 type CreateWhiteboardModalProps = {
   showModal: boolean;
@@ -51,9 +51,9 @@ const CreateWhiteboardModal = ({
       setShowModal(false);
       setWhiteboardName('');
       setRefreshKey((prev) => prev + 1);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating whiteboard:', error);
-      toast.error(error.response?.data?.message || 'Failed to create whiteboard');
+      toast.error(getApiErrorMessage(error, 'Failed to create whiteboard'));
     } finally {
       setLoading(false);
     }

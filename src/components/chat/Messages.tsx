@@ -10,6 +10,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { socket } from "@/lib/socket";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────
 interface Sender {
@@ -26,19 +27,29 @@ interface Message {
 }
 
 // Backend returns snake_case — handle both shapes defensively
-const normalizeMessage = (raw: any): Message => {
+const asRecord = (value: unknown): Record<string, unknown> =>
+  typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+
+const stringValue = (...values: unknown[]): string =>
+  values.find((value): value is string => typeof value === "string") ?? "";
+
+const normalizeMessage = (value: unknown): Message => {
+  const raw = asRecord(value);
   // sender can be a nested object or just an id string
-  const senderObj = raw.sender ?? {};
+  const senderObj = asRecord(raw.sender);
+  const createdAt = stringValue(raw.createdAt, raw.created_at) || new Date().toISOString();
+  const content = stringValue(raw.content);
+  const senderId = stringValue(senderObj._id, senderObj.id, raw.sender_id);
   return {
-    _id:       raw._id   ?? raw.id   ?? crypto.randomUUID(),
-    content:   raw.content ?? "",
-    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+    _id:       stringValue(raw._id, raw.id) || `${senderId}:${createdAt}:${content}`,
+    content,
+    createdAt,
     // chatId: backend sends flat "chat_id" field
-    chatId:    raw.chatId ?? raw.chat_id ?? senderObj?.chat_id ?? "",
+    chatId:    stringValue(raw.chatId, raw.chat_id, senderObj.chat_id),
     sender: {
-      _id:      senderObj._id ?? senderObj.id ?? raw.sender_id ?? "",
-      username: senderObj.username ?? "Unknown",
-      photo:    senderObj.photo ?? undefined,
+      _id: senderId,
+      username: stringValue(senderObj.username) || "Unknown",
+      photo: stringValue(senderObj.photo) || undefined,
     },
   };
 };
@@ -52,7 +63,6 @@ const Messages = () => {
   const [newMessage,      setNewMessage]      = useState("");
   const [loading,         setLoading]         = useState(false);
   const [error,           setError]           = useState<string | null>(null);
-  const [socketConnected, setSocketConnected] = useState(false);
 
   const messagesEndRef       = useRef<HTMLDivElement>(null);
   const currentChatIdRef     = useRef<string>("");
@@ -68,29 +78,29 @@ const Messages = () => {
   // ── Socket setup ────────────────────────────────────────
   useEffect(() => {
     if (!user?._id) return;
+    const joinCurrentChat = () => {
+      if (chatId) socket.emit("join chat", chatId);
+    };
+    socket.on("connect", joinCurrentChat);
+    socket.on("connected", joinCurrentChat);
     socket.connect();
-    socket.emit("setup", user._id);
-    const onConnected = () => setSocketConnected(true);
-    socket.on("connected", onConnected);
-    return () => { socket.off("connected", onConnected); };
-  }, [user?._id]);
-
-  useEffect(() => {
-    if (!socketConnected || !chatId) return;
-    socket.emit("join chat", chatId, user?._id);
-    currentChatIdRef.current = chatId;
-  }, [chatId, socketConnected, user?._id]);
+    if (socket.connected) joinCurrentChat();
+    return () => {
+      socket.off("connect", joinCurrentChat);
+      socket.off("connected", joinCurrentChat);
+    };
+  }, [chatId, user?._id]);
 
   // ── Inbound socket messages ─────────────────────────────
   useEffect(() => {
-    const onReceived = (raw: any) => {
+    const onReceived = (raw: unknown) => {
       const msg = normalizeMessage(raw);
       // Accept the message if chatId matches OR if it has no chatId (older server versions)
       if (msg.chatId && msg.chatId !== currentChatIdRef.current) return;
       setMessages(prev => prev.some(m => m._id === msg._id) ? prev : [...prev, msg]);
     };
-    socket.on("message recieved", onReceived);
-    return () => { socket.off("message recieved", onReceived); };
+    socket.on("message received", onReceived);
+    return () => { socket.off("message received", onReceived); };
   }, []);
 
   // ── Fetch messages on chatId change ────────────────────
@@ -134,9 +144,10 @@ const Messages = () => {
       const confirmed = normalizeMessage(res.data);
       setMessages(prev => prev.map(m => m._id === optimistic._id ? confirmed : m));
       socket.emit("new message", { ...confirmed, chat_id: confirmed.chatId });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("[Messages] send error:", err);
       setMessages(prev => prev.filter(m => m._id !== optimistic._id));
+      toast.error("Message could not be sent. Please try again.");
     }
   };
 
@@ -251,14 +262,14 @@ const Messages = () => {
                           {/* Hover actions */}
                           {isOwn && (
                             <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity flex gap-1">
-                              <Button variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5 text-gray-400 hover:text-white"><Smile className="w-3 h-3" /></Button>
-                              <Button variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5 text-gray-400 hover:text-white"><MoreHorizontal className="w-3 h-3" /></Button>
+                              <Button disabled title="Reactions coming soon" variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5"><Smile className="w-3 h-3" /></Button>
+                              <Button disabled title="Message actions coming soon" variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5"><MoreHorizontal className="w-3 h-3" /></Button>
                             </div>
                           )}
                           {!isOwn && (
                             <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity flex gap-1">
-                              <Button variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5 text-gray-400 hover:text-white"><Smile className="w-3 h-3" /></Button>
-                              <Button variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5 text-gray-400 hover:text-white"><MoreHorizontal className="w-3 h-3" /></Button>
+                              <Button disabled title="Reactions coming soon" variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5"><Smile className="w-3 h-3" /></Button>
+                              <Button disabled title="Message actions coming soon" variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5"><MoreHorizontal className="w-3 h-3" /></Button>
                             </div>
                           )}
 
@@ -288,7 +299,7 @@ const Messages = () => {
         <div className="max-w-4xl mx-auto">
           <div className="bg-[#15181E] border border-white/10 rounded-2xl shadow-2xl overflow-hidden focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
             <div className="flex items-end px-2 py-2 gap-1">
-              <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl text-gray-400 hover:text-indigo-400 shrink-0">
+              <Button disabled title="Attachments coming soon" variant="ghost" size="icon" className="w-9 h-9 rounded-xl shrink-0">
                 <PlusCircle className="w-5 h-5" />
               </Button>
 
@@ -308,8 +319,8 @@ const Messages = () => {
               />
 
               <div className="flex items-center gap-1 shrink-0">
-                <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl text-gray-400 hover:text-gray-200"><AtSign className="w-5 h-5" /></Button>
-                <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl text-gray-400 hover:text-gray-200"><Smile className="w-5 h-5" /></Button>
+                <Button disabled title="Mentions coming soon" variant="ghost" size="icon" className="w-9 h-9 rounded-xl"><AtSign className="w-5 h-5" /></Button>
+                <Button disabled title="Emoji picker coming soon" variant="ghost" size="icon" className="w-9 h-9 rounded-xl"><Smile className="w-5 h-5" /></Button>
                 <div className="w-px h-5 bg-white/10 mx-1" />
                 <Button
                   onClick={handleSend}
@@ -328,13 +339,13 @@ const Messages = () => {
             {/* Footer bar */}
             <div className="bg-black/20 px-4 py-1.5 border-t border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <button className="flex items-center text-xs text-gray-400 hover:text-indigo-400 transition-colors gap-1">
+                <button disabled title="AI assistant coming soon" className="flex items-center text-xs text-gray-600 gap-1 cursor-not-allowed">
                   <Bot className="w-3.5 h-3.5" /> Ask AI
                 </button>
-                <button className="flex items-center text-xs text-gray-400 hover:text-gray-200 transition-colors gap-1">
+                <button disabled title="Attachments coming soon" className="flex items-center text-xs text-gray-600 gap-1 cursor-not-allowed">
                   <Paperclip className="w-3.5 h-3.5" /> Attach
                 </button>
-                <button className="flex items-center text-xs text-gray-400 hover:text-gray-200 transition-colors gap-1">
+                <button disabled title="Voice messages coming soon" className="flex items-center text-xs text-gray-600 gap-1 cursor-not-allowed">
                   <Mic className="w-3.5 h-3.5" /> Voice
                 </button>
               </div>

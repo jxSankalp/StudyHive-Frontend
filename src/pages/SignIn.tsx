@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { Activity, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 const SignIn: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
@@ -27,8 +28,8 @@ const SignIn: React.FC = () => {
       await login(email, password);
       toast.success("Logged in successfully!");
       navigate("/home");
-    } catch (err: any) {
-      const msg = err?.message || "Invalid credentials. Please try again.";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid credentials. Please try again.";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -36,15 +37,28 @@ const SignIn: React.FC = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      toast.error("Enter your email address first.");
+      return;
+    }
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (resetError) toast.error(resetError.message);
+    else toast.success("Password reset instructions were sent to your email.");
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4 font-sans selection:bg-white/20 text-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 font-sans selection:bg-primary/20 text-foreground">
       <div className="w-full max-w-[360px]">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-10 h-10 bg-[#1A1A1A] border border-white/10 rounded-lg flex items-center justify-center mb-6 shadow-sm">
-            <Activity className="w-5 h-5 text-gray-100" />
+          <div className="w-10 h-10 bg-surface border border-border rounded-lg flex items-center justify-center mb-6 shadow-sm">
+            <Activity className="w-5 h-5 text-primary" />
           </div>
-          <h1 className="text-[22px] font-semibold tracking-tight text-white mb-1.5">Sign in to StudyHive</h1>
-          <p className="text-[14px] text-gray-400">Enter your details below to continue.</p>
+          <h1 className="text-[22px] font-semibold tracking-tight text-foreground mb-1.5">Sign in to StudyHive</h1>
+          <p className="text-[14px] text-muted-foreground">Enter your details below to continue.</p>
         </div>
 
         {error && (
@@ -55,7 +69,7 @@ const SignIn: React.FC = () => {
 
         <form onSubmit={handleSignIn} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-[13px] font-medium text-gray-300">
+            <label htmlFor="email" className="block text-[13px] font-medium text-foreground/80">
               Email address
             </label>
             <input
@@ -65,18 +79,18 @@ const SignIn: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
               required
-              className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-md text-[14px] text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
+              className="w-full px-3 py-2 bg-surface border border-border rounded-md text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary transition-all"
             />
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="block text-[13px] font-medium text-gray-300">
+              <label htmlFor="password" className="block text-[13px] font-medium text-foreground/80">
                 Password
               </label>
-              <a href="#" className="text-[12px] text-gray-400 hover:text-white transition-colors">
+              <button type="button" onClick={handleForgotPassword} className="text-[12px] text-muted-foreground hover:text-primary transition-colors">
                 Forgot password?
-              </a>
+              </button>
             </div>
             <input
               id="password"
@@ -85,23 +99,23 @@ const SignIn: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-md text-[14px] text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
+              className="w-full px-3 py-2 bg-surface border border-border rounded-md text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary transition-all"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="w-full h-9 mt-2 flex items-center justify-center bg-white text-black hover:bg-gray-100 font-medium text-[14px] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-9 mt-2 flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-[14px] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-white/10 text-center">
-          <p className="text-[13px] text-gray-400">
+        <div className="mt-8 pt-6 border-t border-border text-center">
+          <p className="text-[13px] text-muted-foreground">
             Don't have an account?{" "}
-            <Link to="/sign-up" className="text-white font-medium hover:underline underline-offset-4">
+            <Link to="/sign-up" className="text-primary font-medium hover:underline underline-offset-4">
               Sign up
             </Link>
           </p>

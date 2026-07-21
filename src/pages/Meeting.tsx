@@ -1,92 +1,148 @@
-"use client";
-
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  CallControls,
+  CallingState,
+  SpeakerLayout,
   StreamCall,
   StreamTheme,
   StreamVideo,
   StreamVideoClient,
-  SpeakerLayout,
-  CallControls,
-  CallingState,
   useCallStateHooks,
 } from "@stream-io/video-react-sdk";
 import type { Call, User } from "@stream-io/video-react-sdk";
+import { LogOut, OctagonX } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
-
+import api, { getApiErrorMessage } from "@/lib/axiosInstance";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
-import api from "@/lib/axiosInstance";
 
-// ─────────────────────────────────────────────────────────────
-// MeetingRoom — rendered inside StreamCall context
-// ─────────────────────────────────────────────────────────────
-const MeetingRoom = ({ onLeave }: { onLeave: () => void }) => {
+type MeetingSession = {
+  client: StreamVideoClient;
+  call: Call;
+  ready: Promise<void>;
+  references: number;
+  cleanupTimer?: ReturnType<typeof setTimeout>;
+};
+
+const sessions = new Map<string, MeetingSession>();
+
+const acquireSession = (apiKey: string, user: User, token: string, callId: string) => {
+  const key = `${apiKey}:${user.id}:${callId}`;
+  const existing = sessions.get(key);
+  if (existing) {
+    if (existing.cleanupTimer) clearTimeout(existing.cleanupTimer);
+    existing.cleanupTimer = undefined;
+    existing.references += 1;
+    return { key, session: existing };
+  }
+
+  const client = StreamVideoClient.getOrCreateInstance({ apiKey, user, token });
+  const call = client.call("default", callId);
+  const session: MeetingSession = {
+    client,
+    call,
+    references: 1,
+    ready: call.join({ create: false }).then(() => undefined),
+  };
+  // Register before awaiting join so concurrent React effects share one call.
+  sessions.set(key, session);
+  return { key, session };
+};
+
+const releaseSession = (key: string) => {
+  const session = sessions.get(key);
+  if (!session) return;
+  session.references = Math.max(0, session.references - 1);
+  if (session.references > 0) return;
+
+  // Strict Mode remounts immediately in development. A short grace period lets
+  // that remount reuse the same SDK session instead of publishing a second feed.
+  session.cleanupTimer = setTimeout(() => {
+    if (session.references > 0) return;
+    sessions.delete(key);
+    void session.ready
+      .catch(() => undefined)
+      .then(() => session.call.leave().catch(() => undefined))
+      .then(() => session.client.disconnectUser().catch(() => undefined));
+  }, 300);
+};
+
+type MeetingRoomProps = {
+  canManage: boolean;
+  ending: boolean;
+  onLeave: () => void;
+  onEnd: () => void;
+};
+
+const MeetingRoom = ({ canManage, ending, onLeave, onEnd }: MeetingRoomProps) => {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
 
-  if (
-    callingState === CallingState.IDLE ||
-    callingState === CallingState.JOINING
-  ) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4 text-white bg-gray-950">
-        <Spinner />
-        <span className="text-lg font-medium animate-pulse">
-          Joining meeting…
-        </span>
-      </div>
-    );
+  if (callingState === CallingState.IDLE || callingState === CallingState.JOINING) {
+    return <MeetingNotice><Spinner /><span>Joining meeting…</span></MeetingNotice>;
   }
 
   if (callingState === CallingState.LEFT) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4 text-white bg-gray-950">
-        <p className="text-lg">You have left the meeting.</p>
-        <button
-          onClick={onLeave}
-          className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition"
-        >
-          Return to workspace
-        </button>
-      </div>
+      <MeetingNotice>
+        <p className="text-lg font-medium">This meeting has ended or you have left.</p>
+        <button onClick={onLeave} className="meeting-primary-button">Return to workspace</button>
+      </MeetingNotice>
     );
   }
 
   return (
-    // @ts-ignore
-    <StreamTheme className="h-screen w-full bg-gray-950 text-white relative">
-      {/* @ts-ignore */}
+    <StreamTheme className="meeting-theme relative h-screen w-full">
       <SpeakerLayout participantsBarPosition="bottom" />
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
+      <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3">
         <CallControls onLeave={onLeave} />
+        {canManage && (
+          <button
+            type="button"
+            onClick={onEnd}
+            disabled={ending}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-red-600 px-4 text-sm font-semibold text-white shadow-lg hover:bg-red-500 disabled:cursor-wait disabled:opacity-60"
+            title="End this meeting for everyone"
+          >
+            <OctagonX className="h-4 w-4" />
+            {ending ? "Ending…" : "End for all"}
+          </button>
+        )}
       </div>
     </StreamTheme>
   );
 };
 
-// ─────────────────────────────────────────────────────────────
-// MeetingPage — sets up the Stream client & joins the call
-// ─────────────────────────────────────────────────────────────
+const MeetingNotice = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center text-foreground">
+    {children}
+  </div>
+);
+
 const MeetingPage = () => {
   const { callId } = useParams<{ callId: string }>();
   const navigate = useNavigate();
-
   const [client, setClient] = useState<StreamVideoClient | null>(null);
   const [call, setCall] = useState<Call | null>(null);
+  const [meetingDbId, setMeetingDbId] = useState<string | null>(null);
+  const [canManage, setCanManage] = useState(false);
+  const [ending, setEnding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Refs track the live instances so the cleanup closure always has fresh refs,
-  // preventing "cleanup runs before client is set" race conditions.
-  const clientRef = useRef<StreamVideoClient | null>(null);
-  const callRef = useRef<Call | null>(null);
-  // Guard against React StrictMode double-invoke / re-renders
-  const initStarted = useRef(false);
+  const handleLeave = useCallback(() => navigate(-1), [navigate]);
 
-  const handleLeave = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
+  const handleEnd = useCallback(async () => {
+    if (!meetingDbId || ending) return;
+    setEnding(true);
+    try {
+      await api.patch(`/meet/${meetingDbId}/status`, { status: "ended" });
+      navigate(-1);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Could not end the meeting."));
+      setEnding(false);
+    }
+  }, [ending, meetingDbId, navigate]);
 
   useEffect(() => {
     if (!callId) {
@@ -95,126 +151,74 @@ const MeetingPage = () => {
       return;
     }
 
-    // Prevent duplicate initialisation (React 18 StrictMode double-effect)
-    if (initStarted.current) return;
-    initStarted.current = true;
+    const controller = new AbortController();
+    let acquiredKey: string | null = null;
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
 
-    const initClientAndCall = async () => {
+    const initialize = async () => {
       try {
-        // 1. Get current user profile
-        const userRes = await api.get("/users/me");
-        const dbUser = userRes.data;
+        const [userResponse, tokenResponse] = await Promise.all([
+          api.get("/users/me", { signal: controller.signal }),
+          api.post("/meet/get-token", { callId }, { signal: controller.signal }),
+        ]);
+        if (cancelled) return;
 
-        if (!dbUser?._id) throw new Error("Could not load your user profile.");
-
-        // 2. Get a Stream token — backend now issues it for the authenticated user
-        const tokenRes = await api.post("/meet/get-token", {});
-        const { token } = tokenRes.data;
-        if (!token) throw new Error("Failed to obtain a meeting token.");
-
+        const dbUser = userResponse.data;
+        const { token, meetingDbId: dbId, canManage: mayManage } = tokenResponse.data;
         const apiKey = import.meta.env.VITE_STREAM_API_KEY;
+        if (!dbUser?._id) throw new Error("Could not load your user profile.");
+        if (!token) throw new Error("Failed to obtain a meeting token.");
         if (!apiKey) throw new Error("Stream API key is not configured.");
 
-        // 3. Build Stream user object
         const user: User = {
           id: dbUser._id,
           name: dbUser.username || "Unknown",
-          image: dbUser.photo || "",
+          image: dbUser.photo || undefined,
         };
+        const acquired = acquireSession(apiKey, user, token, callId);
+        acquiredKey = acquired.key;
+        await acquired.session.ready;
+        if (cancelled) return;
 
-        // 4. Create the video client and join the call
-        const videoClient = new StreamVideoClient({ apiKey, user, token });
-        const callInstance = videoClient.call("default", callId);
-
-        await callInstance.join({ create: true });
-
-        // Store in refs (for cleanup) and state (for render)
-        clientRef.current = videoClient;
-        callRef.current = callInstance;
-
-        setClient(videoClient);
-        setCall(callInstance);
-      } catch (err: any) {
-        console.error("[MeetingPage] setup error:", err);
-        setError(
-          err?.response?.data?.error ||
-            err?.message ||
-            "An unknown error occurred."
-        );
+        setClient(acquired.session.client);
+        setCall(acquired.session.call);
+        setMeetingDbId(dbId ?? null);
+        setCanManage(Boolean(mayManage));
+      } catch (err) {
+        if (cancelled) return;
+        setError(getApiErrorMessage(err, "Could not join the meeting."));
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    initClientAndCall();
-
-    // Cleanup: leave call and disconnect client
+    void initialize();
     return () => {
-      const cleanup = async () => {
-        try {
-          if (callRef.current) {
-            await callRef.current.leave();
-          }
-        } catch (e) {
-          console.warn("[MeetingPage] leave error (non-fatal):", e);
-        }
-        try {
-          if (clientRef.current) {
-            await clientRef.current.disconnectUser();
-          }
-        } catch (e) {
-          console.warn("[MeetingPage] disconnect error (non-fatal):", e);
-        }
-        clientRef.current = null;
-        callRef.current = null;
-      };
-      cleanup();
-      setClient(null);
-      setCall(null);
-      initStarted.current = false;
+      cancelled = true;
+      controller.abort();
+      if (acquiredKey) releaseSession(acquiredKey);
     };
   }, [callId]);
 
-  // ── Loading state ──────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4 text-white bg-gray-950">
-        <Spinner />
-        <span className="text-lg font-medium animate-pulse">
-          Preparing meeting room…
-        </span>
-      </div>
-    );
-  }
+  if (isLoading) return <MeetingNotice><Spinner /><span>Preparing meeting room…</span></MeetingNotice>;
 
-  // ── Error state ────────────────────────────────────────────
   if (error || !client || !call) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-6 bg-gray-950">
-        <div className="w-16 h-16 rounded-full bg-red-900/40 flex items-center justify-center text-red-400 text-3xl">
-          ✕
-        </div>
-        <h2 className="text-xl font-semibold text-white">
-          Could not join the meeting
-        </h2>
-        <p className="text-gray-400 text-center max-w-sm">
-          {error || "An unexpected error occurred. Please try again."}
-        </p>
-        <button
-          onClick={handleLeave}
-          className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition"
-        >
-          Go back
-        </button>
-      </div>
+      <MeetingNotice>
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15 text-red-500"><LogOut /></div>
+        <h2 className="text-xl font-semibold">Could not join the meeting</h2>
+        <p className="max-w-sm text-muted-foreground">{error || "An unexpected error occurred."}</p>
+        <button onClick={handleLeave} className="meeting-primary-button">Go back</button>
+      </MeetingNotice>
     );
   }
 
-  // ── Happy path ─────────────────────────────────────────────
   return (
     <StreamVideo client={client}>
       <StreamCall call={call}>
-        <MeetingRoom onLeave={handleLeave} />
+        <MeetingRoom canManage={canManage} ending={ending} onLeave={handleLeave} onEnd={handleEnd} />
       </StreamCall>
     </StreamVideo>
   );

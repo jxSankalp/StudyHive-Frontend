@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useRef, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Session } from "@supabase/supabase-js";
+import { BACKEND_URL } from "@/lib/axiosInstance";
+import { socket } from "@/lib/socket";
 
 interface Profile {
   _id: string;
@@ -21,8 +23,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string;
 
 /** Try to get profile from backend. Returns null on any failure. */
 async function fetchProfile(session: Session): Promise<Profile | null> {
@@ -60,8 +60,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const hydrationVersion = useRef(0);
 
-  const hydrateUser = async (s: Session | null) => {
+  const hydrateUser = useCallback(async (s: Session | null) => {
+    const version = ++hydrationVersion.current;
     if (!s) {
       setUser(null);
       setSession(null);
@@ -73,28 +75,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Try backend first, fall back to session data
     const profile = (await fetchProfile(s)) ?? profileFromSession(s);
+    if (version !== hydrationVersion.current) return;
     setUser(profile);
     setLoading(false);
-  };
+  }, []);
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
     await hydrateUser(data.session);
-  };
+  }, [hydrateUser]);
 
   useEffect(() => {
-    checkAuth();
+    void checkAuth();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, s) => {
-        hydrateUser(s);
+        void hydrateUser(s);
       }
     );
 
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [checkAuth, hydrateUser]);
 
   const login = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -104,10 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) throw error;
 
     if (data.session) {
-      setSession(data.session);
-      const profile =
-        (await fetchProfile(data.session)) ?? profileFromSession(data.session);
-      setUser(profile);
+      await hydrateUser(data.session);
     }
   };
 
@@ -127,8 +127,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) throw error;
 
     if (data.session) {
-      setSession(data.session);
-
       // Upsert profile row on backend (best-effort)
       try {
         await fetch(`${BACKEND_URL}/api/auth/profile`, {
@@ -143,14 +141,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Backend not available — profile will be auto-created on next /me call
       }
 
-      const profile =
-        (await fetchProfile(data.session)) ?? profileFromSession(data.session);
-      setUser(profile);
+      await hydrateUser(data.session);
     }
     // If email confirmation required, session is null → user must confirm first
   };
 
   const logout = async () => {
+    socket.disconnect();
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

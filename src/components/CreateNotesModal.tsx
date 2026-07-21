@@ -1,4 +1,4 @@
-import api from "@/lib/axiosInstance";
+import api, { getApiErrorMessage } from "@/lib/axiosInstance";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -25,22 +25,25 @@ const CreateNotesModal: React.FC<CreateNotesModalProps> = ({
     )?.value.trim();
 
    
+    if (!name) {
+      toast.error("Please enter a note name.");
+      return;
+    }
+
     try {
-      const res = await api.post("/notes", {
+      await api.post("/notes", {
         name,
         content: "Start typing...",
         chatId
       });
 
-      console.log("Note created:", res.data.data);
-
       toast.success("Note created successfully!");
       setShowModal(false);
       setRefreshKey((prev: number) => prev + 1); 
       form.reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Note creation failed:", error);
-      toast.error("Failed to create note. Please try again.");
+      toast.error(getApiErrorMessage(error, "Failed to create note. Please try again."));
     }
   };
 

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Video } from "lucide-react";
-import api from "@/lib/axiosInstance";
+import api, { getApiErrorMessage } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 
 type Props = {
@@ -47,12 +47,9 @@ const CreateMeetingModal = ({ chatId, onSuccess, open, onOpenChange }: Props) =>
       onOpenChange(false);
       setMeetName("");
       onSuccess?.();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[CreateMeetingModal] error:", err);
-      const message =
-        err?.response?.data?.error ||
-        "Failed to create meeting. Please try again.";
-      toast.error(message);
+      toast.error(getApiErrorMessage(err, "Failed to create meeting. Please try again."));
     } finally {
       setLoading(false);
     }

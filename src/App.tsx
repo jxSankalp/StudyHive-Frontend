@@ -1,16 +1,19 @@
 // src/App.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
-import { FileText, Monitor, Video, Calendar, Folder, Settings } from "lucide-react";
+import { lazy, Suspense } from "react";
+import { FileText, Monitor, Video, Calendar, Folder, Settings, MessageCircle } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
-import Home from "./pages/Home";
-import Profile from "./pages/Profile";
-import Chat from "./pages/Chat";
-import MeetingPage from "./pages/Meeting";
-import LandingPage from "./pages/LandingPage";
-import GroupListPage from "./pages/GroupListPage";
+import ResetPassword from "./pages/ResetPassword";
 import { WorkspaceLayout } from "./components/layout/WorkspaceLayout";
+
+const MeetingPage = lazy(() => import("./pages/Meeting"));
+const Chat = lazy(() => import("./pages/Chat"));
+const Home = lazy(() => import("./pages/Home"));
+const Profile = lazy(() => import("./pages/Profile"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const GroupListPage = lazy(() => import("./pages/GroupListPage"));
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
@@ -24,6 +27,7 @@ function App() {
   }
 
   return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-background"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" /></div>}>
     <Routes>
       {/* Public Landing Page */}
       <Route
@@ -34,6 +38,7 @@ function App() {
       {/* Auth Routes */}
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/sign-up" element={<SignUp />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Protected Routes wrapped in WorkspaceLayout */}
       <Route
@@ -56,7 +61,9 @@ function App() {
       {/* Sidebar nav stub routes */}
       <Route
         path="/chats"
-        element={<Navigate to="/home" replace />}
+        element={isAuthenticated
+          ? <WorkspaceLayout><GroupListPage tab="chat" icon={MessageCircle} label="Chats" description="Select a workspace to continue the conversation." /></WorkspaceLayout>
+          : <Navigate to="/sign-in" />}
       />
       <Route
         path="/notes"
@@ -98,7 +105,8 @@ function App() {
       {/* Fallback route */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </Suspense>
   );
 }
 
-export default App;
+export default App;

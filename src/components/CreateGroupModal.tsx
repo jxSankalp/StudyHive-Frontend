@@ -1,4 +1,4 @@
-import api from "@/lib/axiosInstance";
+import api, { getApiErrorMessage } from "@/lib/axiosInstance";
 import type { CreateGroupModalProps, IUser } from "@/types";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -11,19 +11,21 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<IUser[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Debounced API call
   useEffect(() => {
+    const controller = new AbortController();
     const delayDebounce = setTimeout(() => {
       const query = searchQuery.trim();
       if (query) {
         api
           .get(`/users/search`, {
             params: { query },
+            signal: controller.signal,
           })
           .then((res) => {
             setSearchResults(res.data.users || []);
-            console.log(res.data.users);
           })
           .catch(() => {
             setSearchResults([]);
@@ -33,7 +35,10 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
       }
     }, 300); // debounce for 300ms
 
-    return () => clearTimeout(delayDebounce);
+    return () => {
+      clearTimeout(delayDebounce);
+      controller.abort();
+    };
   }, [searchQuery]);
 
   const handleCreateGroup = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -51,21 +56,15 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     }
 
     try {
+      setIsSubmitting(true);
       const userIds = selectedUsers.map((user) => user._id);
 
-      const res = await api.post("/chat", {
+      await api.post("/chat", {
         name,
         description,
         users: userIds,
       });
 
-      console.log("hii1");
-
-      const createdGroup = res.data.chat;
-      console.log("hii2");
-      console.log(createdGroup);
-
-      console.log("hii3");
       toast.success("Group created successfully!");
       onGroupCreated();
       setShowModal(false);
@@ -73,9 +72,11 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
       setSelectedUsers([]);
       setSearchQuery("");
       setSearchResults([]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Group creation failed:", error);
-      toast.error("Failed to create group. Please try again.");
+      toast.error(getApiErrorMessage(error, "Failed to create group. Please try again."));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -87,7 +88,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     setSearchResults([]);
   };
 
-  const handleRemoveUser = (id: String) => {
+  const handleRemoveUser = (id: string) => {
     setSelectedUsers((prev) => prev.filter((u: IUser) => u._id !== id));
   };
 
@@ -161,9 +162,10 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             
             <button
               type="submit"
+              disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition"
             >
-              Create Group
+              {isSubmitting ? "Creating..." : "Create Group"}
             </button>
           </form>
         </div>

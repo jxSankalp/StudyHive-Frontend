@@ -6,6 +6,10 @@ import { defineConfig } from "vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    // Route-level code splitting keeps the initial bundle well below this ceiling.
+    chunkSizeWarningLimit: 750,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

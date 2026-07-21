@@ -1,7 +1,7 @@
-// src/components/chat/Whiteboard.tsx
-
 import { useEffect, useRef, useState } from "react";
 import { Stage, Layer, Line, Rect, Circle, Text } from "react-konva";
+import type Konva from "konva";
+import type { KonvaEventObject } from "konva/lib/Node";
 import { Button } from "@/components/ui/button";
 import {
   PenTool,
@@ -15,373 +15,341 @@ import {
   Redo2,
 } from "lucide-react";
 import type { Whiteboard as WhiteboardType } from "@/types";
-import { io } from "socket.io-client";
 import { toast } from "sonner";
-import api from "@/lib/axiosInstance";
-import { useAuth } from "@/context/AuthContext";
+import api, { getApiErrorMessage } from "@/lib/axiosInstance";
+import { socket } from "@/lib/socket";
 
-type WhiteboardProps = {
-  whiteboard?: WhiteboardType;
+type Tool = "pen" | "eraser" | "text" | "rectangle" | "circle";
+
+interface ShapeAttrs {
+  tool: Tool;
+  x: number;
+  y: number;
+  points?: number[];
+  stroke?: string;
+  strokeWidth?: number;
+  tension?: number;
+  lineCap?: CanvasLineCap;
+  text?: string;
+  fontSize?: number;
+  fill?: string;
+  width?: number;
+  height?: number;
+  radius?: number;
+}
+
+interface DrawingShape {
+  className?: string;
+  attrs: ShapeAttrs;
+}
+
+type PointerEvent = MouseEvent | TouchEvent;
+
+const cloneShapes = (shapes: DrawingShape[]): DrawingShape[] =>
+  shapes.map((shape) => ({
+    ...shape,
+    attrs: {
+      ...shape.attrs,
+      points: shape.attrs.points ? [...shape.attrs.points] : undefined,
+    },
+  }));
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isTool = (value: unknown): value is Tool =>
+  value === "pen" ||
+  value === "eraser" ||
+  value === "text" ||
+  value === "rectangle" ||
+  value === "circle";
+
+const isDrawingShape = (value: unknown): value is DrawingShape => {
+  if (!isRecord(value) || !isRecord(value.attrs)) return false;
+  return (
+    isTool(value.attrs.tool) &&
+    typeof value.attrs.x === "number" &&
+    typeof value.attrs.y === "number"
+  );
 };
 
-const Whiteboard = ({ whiteboard }: WhiteboardProps) => {
-  const { user } = useAuth();
-  const [tool, setTool] = useState("pen");
-  const [lines, setLines] = useState<any[]>([]);
-  const isDrawing = useRef(false);
-  const stageRef = useRef<any>(null);
-  const socketRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [stageSize, setStageSize] = useState({
-    width: 0,
-    height: 0,
-  });
+const parseSavedShapes = (savedData: unknown): DrawingShape[] => {
+  if (!savedData) return [];
+  try {
+    const parsed: unknown = typeof savedData === "string" ? JSON.parse(savedData) : savedData;
+    if (!isRecord(parsed) || !Array.isArray(parsed.children)) return [];
+    const layer = parsed.children.find(
+      (child) => isRecord(child) && child.className === "Layer"
+    );
+    if (!isRecord(layer) || !Array.isArray(layer.children)) return [];
+    return layer.children.filter(isDrawingShape).map((shape) => cloneShapes([shape])[0]);
+  } catch {
+    return [];
+  }
+};
 
+const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
+  const [tool, setTool] = useState<Tool>("pen");
+  const [lines, setLines] = useState<DrawingShape[]>([]);
   const [color, setColor] = useState("#ffffff");
-  const historyRef = useRef<any[]>([[]]);
   const [historyStep, setHistoryStep] = useState(0);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+
+  const isDrawing = useRef(false);
+  const stageRef = useRef<Konva.Stage>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const linesRef = useRef<DrawingShape[]>([]);
+  const historyRef = useRef<DrawingShape[][]>([[]]);
+  const historyStepRef = useRef(0);
+
+  const setDrawingState = (next: DrawingShape[]) => {
+    const cloned = cloneShapes(next);
+    linesRef.current = cloned;
+    setLines(cloned);
+  };
+
+  const commitHistory = (next: DrawingShape[]) => {
+    const snapshot = cloneShapes(next);
+    const history = historyRef.current.slice(0, historyStepRef.current + 1);
+    history.push(snapshot);
+    historyRef.current = history;
+    historyStepRef.current = history.length - 1;
+    setHistoryStep(historyStepRef.current);
+  };
 
   useEffect(() => {
-    const handleResize = () => {
-      if (containerRef.current) {
-        setStageSize({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight,
-        });
-      }
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const container = containerRef.current;
+    if (!container) return;
+    const updateSize = () =>
+      setStageSize({ width: container.clientWidth, height: container.clientHeight });
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (!whiteboard) return;
+    if (!whiteboard?._id) return;
+    const whiteboardId = whiteboard._id;
+    let active = true;
 
-    const socket = io(import.meta.env.VITE_BACKEND_URL);
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      console.log("Connected to socket server");
-      socket.emit("whiteboard:join", whiteboard._id, user?._id || "anonymous");
-    });
-
-    socket.on("whiteboard:update", (data: any) => {
-      setLines(data);
-      historyRef.current = historyRef.current.slice(0, historyStep + 1);
-      historyRef.current.push(data);
-      setHistoryStep(historyRef.current.length - 1);
-    });
-
-    socket.on("whiteboard:clear-all", () => {
-      setLines([]);
-      historyRef.current = [[]];
-      setHistoryStep(0);
-    });
-
-    const fetchWhiteboardData = async () => {
-      try {
-        const response = await api.get(`/whiteboards/${whiteboard._id}`);
-        const savedData = response.data.data.data;
-
-        if (savedData && Object.keys(savedData).length > 0) {
-          try {
-            const konvaData = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-            if (konvaData.children) {
-              const layer = konvaData.children.find(
-                (child: any) => child.className === "Layer"
-              );
-              if (layer && layer.children) {
-                setLines(layer.children);
-                historyRef.current = [layer.children];
-                setHistoryStep(0);
-              }
-            }
-          } catch (e) {
-            console.error("Failed to parse Konva JSON data:", e);
-            toast.error("Failed to parse whiteboard content.");
-          }
-        } else {
-          setLines([]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch whiteboard data:", error);
-        toast.error("Failed to load whiteboard content.");
-      }
+    const joinWhiteboard = () => socket.emit("whiteboard:join", whiteboardId);
+    const handleRemoteUpdate = (value: unknown) => {
+      if (!Array.isArray(value)) return;
+      const shapes = value.filter(isDrawingShape);
+      if (shapes.length !== value.length) return;
+      setDrawingState(shapes);
+      commitHistory(shapes);
+    };
+    const handleRemoteClear = () => {
+      setDrawingState([]);
+      commitHistory([]);
     };
 
-    fetchWhiteboardData();
+    socket.on("connect", joinWhiteboard);
+    socket.on("connected", joinWhiteboard);
+    socket.on("whiteboard:update", handleRemoteUpdate);
+    socket.on("whiteboard:clear-all", handleRemoteClear);
+    socket.connect();
+    if (socket.connected) joinWhiteboard();
+
+    api
+      .get<{ data: WhiteboardType }>(`/whiteboards/${whiteboardId}`)
+      .then((response) => {
+        if (!active) return;
+        const saved = parseSavedShapes(response.data.data.data);
+        setDrawingState(saved);
+        historyRef.current = [cloneShapes(saved)];
+        historyStepRef.current = 0;
+        setHistoryStep(0);
+      })
+      .catch((error: unknown) => {
+        if (active) toast.error(getApiErrorMessage(error, "Failed to load whiteboard content."));
+      });
 
     return () => {
-      if (stageRef.current && socketRef.current) {
-        const whiteboardData = stageRef.current.toJSON();
-        socketRef.current.emit("whiteboard:save", {
-          whiteboardId: whiteboard._id,
-          whiteboardData,
-        });
-        socketRef.current.disconnect();
-      }
+      active = false;
+      socket.emit("whiteboard:leave", whiteboardId);
+      socket.off("connect", joinWhiteboard);
+      socket.off("connected", joinWhiteboard);
+      socket.off("whiteboard:update", handleRemoteUpdate);
+      socket.off("whiteboard:clear-all", handleRemoteClear);
     };
   }, [whiteboard?._id]);
 
-  const handleMouseDown = (e: any) => {
-    isDrawing.current = true;
-    const pos = e.target.getStage().getPointerPosition();
-    let newShape: any = { attrs: { tool, x: pos.x, y: pos.y } };
-
-    if (tool === "pen" || tool === "eraser") {
-      newShape.attrs.points = [0, 0];
-      newShape.attrs.stroke = tool === "pen" ? color : "black";
-      newShape.attrs.strokeWidth = tool === "pen" ? 5 : 20;
-      newShape.attrs.tension = 0.5;
-      newShape.attrs.lineCap = "round";
-    } else if (tool === "text") {
-      isDrawing.current = false;
-      const textInput = prompt("Enter text:");
-      if (textInput) {
-        newShape.attrs.text = textInput;
-        newShape.attrs.fontSize = 20;
-        newShape.attrs.fill = color;
-        const newLines = [...lines, newShape];
-        setLines(newLines);
-        socketRef.current.emit("whiteboard:draw", {
-          whiteboardId: whiteboard?._id,
-          drawingData: newLines,
-        });
-      }
-      return;
-    } else if (tool === "rectangle") {
-      newShape.attrs.width = 1;
-      newShape.attrs.height = 1;
-      newShape.attrs.stroke = color;
-      newShape.attrs.strokeWidth = 2;
-    } else if (tool === "circle") {
-      newShape.attrs.radius = 1;
-      newShape.attrs.stroke = color;
-      newShape.attrs.strokeWidth = 2;
-    }
-
-    setLines([...lines, newShape]);
-  };
-
-  const handleMouseMove = (e: any) => {
-    if (!isDrawing.current || tool === "text") return;
-
-    const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
-    const currentLines = [...lines];
-    let lastShape = currentLines[currentLines.length - 1];
-
-    if (!lastShape) return;
-
-    if (tool === "pen" || tool === "eraser") {
-      lastShape.attrs.points = lastShape.attrs.points.concat([
-        point.x - lastShape.attrs.x,
-        point.y - lastShape.attrs.y,
-      ]);
-      currentLines.splice(currentLines.length - 1, 1, lastShape);
-    } else if (tool === "rectangle") {
-      const startX = lastShape.attrs.x;
-      const startY = lastShape.attrs.y;
-      lastShape.attrs.width = point.x - startX;
-      lastShape.attrs.height = point.y - startY;
-      currentLines.splice(currentLines.length - 1, 1, lastShape);
-    } else if (tool === "circle") {
-      const startX = lastShape.attrs.x;
-      const startY = lastShape.attrs.y;
-      lastShape.attrs.radius = Math.sqrt(
-        Math.pow(point.x - startX, 2) + Math.pow(point.y - startY, 2)
-      );
-      currentLines.splice(currentLines.length - 1, 1, lastShape);
-    }
-
-    setLines(currentLines);
-    socketRef.current.emit("whiteboard:draw", {
-      whiteboardId: whiteboard?._id,
-      drawingData: currentLines,
+  const publish = (next: DrawingShape[]) => {
+    if (!whiteboard?._id) return;
+    socket.emit("whiteboard:draw", {
+      whiteboardId: whiteboard._id,
+      drawingData: next,
     });
   };
 
-  const handleMouseUp = () => {
+  const handlePointerDown = (event: KonvaEventObject<PointerEvent>) => {
+    const stage = event.target.getStage();
+    const position = stage?.getPointerPosition();
+    if (!position) return;
+
+    if (tool === "text") {
+      const text = window.prompt("Enter text:")?.trim();
+      if (!text) return;
+      const next = [
+        ...linesRef.current,
+        { attrs: { tool, x: position.x, y: position.y, text, fontSize: 20, fill: color } },
+      ];
+      setDrawingState(next);
+      commitHistory(next);
+      publish(next);
+      return;
+    }
+
+    isDrawing.current = true;
+    const attrs: ShapeAttrs = { tool, x: position.x, y: position.y };
+    if (tool === "pen" || tool === "eraser") {
+      Object.assign(attrs, {
+        points: [0, 0],
+        stroke: tool === "pen" ? color : "#000000",
+        strokeWidth: tool === "pen" ? 5 : 20,
+        tension: 0.5,
+        lineCap: "round" as CanvasLineCap,
+      });
+    } else if (tool === "rectangle") {
+      Object.assign(attrs, { width: 1, height: 1, stroke: color, strokeWidth: 2 });
+    } else if (tool === "circle") {
+      Object.assign(attrs, { radius: 1, stroke: color, strokeWidth: 2 });
+    }
+    setDrawingState([...linesRef.current, { attrs }]);
+  };
+
+  const handlePointerMove = (event: KonvaEventObject<PointerEvent>) => {
+    if (!isDrawing.current) return;
+    const position = event.target.getStage()?.getPointerPosition();
+    if (!position) return;
+
+    const next = cloneShapes(linesRef.current);
+    const last = next[next.length - 1];
+    if (!last) return;
+    const attrs = last.attrs;
+    if (attrs.tool === "pen" || attrs.tool === "eraser") {
+      attrs.points = [...(attrs.points ?? []), position.x - attrs.x, position.y - attrs.y];
+    } else if (attrs.tool === "rectangle") {
+      attrs.width = position.x - attrs.x;
+      attrs.height = position.y - attrs.y;
+    } else if (attrs.tool === "circle") {
+      attrs.radius = Math.hypot(position.x - attrs.x, position.y - attrs.y);
+    }
+    setDrawingState(next);
+    publish(next);
+  };
+
+  const handlePointerUp = () => {
+    if (!isDrawing.current) return;
     isDrawing.current = false;
-    // FIX: After a shape is drawn, add the new state to the history
-    const newHistory = historyRef.current.slice(0, historyStep + 1);
-    newHistory.push(lines);
-    historyRef.current = newHistory;
-    setHistoryStep(newHistory.length - 1);
+    commitHistory(linesRef.current);
   };
 
   const handleClear = () => {
-    setLines([]);
-    socketRef.current.emit("whiteboard:clear-all", {
-      whiteboardId: whiteboard?._id,
-    });
+    setDrawingState([]);
+    commitHistory([]);
+    if (whiteboard?._id) socket.emit("whiteboard:clear-all", { whiteboardId: whiteboard._id });
   };
 
   const handleSave = async () => {
-    const whiteboardData = stageRef.current.toJSON();
+    if (!whiteboard?._id || !stageRef.current) return;
     try {
-      await api.put(`/whiteboards/${whiteboard?._id}/save`, {
-        data: whiteboardData,
-      });
-      toast.success("Whiteboard saved successfully!");
-    } catch (error) {
-      console.error("Failed to save whiteboard:", error);
-      toast.error("Failed to save whiteboard.");
+      await api.put(`/whiteboards/${whiteboard._id}/save`, { data: stageRef.current.toJSON() });
+      toast.success("Whiteboard saved.");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Failed to save whiteboard."));
     }
   };
 
-  const undo = () => {
-    if (historyStep > 0) {
-      const newHistoryStep = historyStep - 1;
-      setHistoryStep(newHistoryStep);
-      setLines(historyRef.current[newHistoryStep]);
-      socketRef.current.emit("whiteboard:draw", {
-        whiteboardId: whiteboard?._id,
-        drawingData: historyRef.current[newHistoryStep],
-      });
-    }
+  const moveInHistory = (nextStep: number) => {
+    const snapshot = historyRef.current[nextStep];
+    if (!snapshot) return;
+    historyStepRef.current = nextStep;
+    setHistoryStep(nextStep);
+    setDrawingState(snapshot);
+    publish(snapshot);
   };
 
-  const redo = () => {
-    if (historyStep < historyRef.current.length - 1) {
-      const newHistoryStep = historyStep + 1;
-      setHistoryStep(newHistoryStep);
-      setLines(historyRef.current[newHistoryStep]);
-      socketRef.current.emit("whiteboard:draw", {
-        whiteboardId: whiteboard?._id,
-        drawingData: historyRef.current[newHistoryStep],
-      });
-    }
-  };
-
-  if (!whiteboard) {
-    return null;
-  }
+  if (!whiteboard) return null;
 
   return (
-    <div className="flex-1 p-8">
+    <div className="flex-1 p-4 sm:p-8 min-h-0">
       <div className="max-w-7xl mx-auto flex flex-col h-full">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h1 className="text-2xl font-bold text-white">{whiteboard.title}</h1>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTool("pen")}
-              className={tool === "pen" ? "bg-gray-700/50" : ""}
-            >
-              <PenTool className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTool("eraser")}
-              className={tool === "eraser" ? "bg-gray-700/50" : ""}
-            >
-              <Eraser className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTool("text")}
-              className={tool === "text" ? "bg-gray-700/50" : ""}
-            >
-              <Type className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTool("rectangle")}
-              className={tool === "rectangle" ? "bg-gray-700/50" : ""}
-            >
-              <Square className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTool("circle")}
-              className={tool === "circle" ? "bg-gray-700/50" : ""}
-            >
-              <CircleIcon className="w-4 h-4" />
-            </Button>
-
-            <div className="w-6 h-6 rounded-full border border-gray-600 overflow-hidden">
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-full h-full cursor-pointer"
-              />
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={undo}
-              disabled={historyStep === 0}
-            >
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              ["pen", PenTool],
+              ["eraser", Eraser],
+              ["text", Type],
+              ["rectangle", Square],
+              ["circle", CircleIcon],
+            ] as const).map(([value, Icon]) => (
+              <Button
+                key={value}
+                variant="outline"
+                size="sm"
+                onClick={() => setTool(value)}
+                className={tool === value ? "bg-gray-700/50" : ""}
+                aria-label={`Use ${value} tool`}
+              >
+                <Icon className="w-4 h-4" />
+              </Button>
+            ))}
+            <input
+              type="color"
+              value={color}
+              onChange={(event) => setColor(event.target.value)}
+              className="w-8 h-8 cursor-pointer rounded border border-gray-600 bg-transparent"
+              aria-label="Drawing color"
+            />
+            <Button variant="outline" size="sm" onClick={() => moveInHistory(historyStep - 1)} disabled={historyStep === 0}>
               <Undo2 className="w-4 h-4" />
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={redo}
-              disabled={historyStep === historyRef.current.length - 1}
-            >
+            <Button variant="outline" size="sm" onClick={() => moveInHistory(historyStep + 1)} disabled={historyStep >= historyRef.current.length - 1}>
               <Redo2 className="w-4 h-4" />
             </Button>
-
-            <Button variant="outline" size="sm" onClick={handleClear}>
+            <Button variant="outline" size="sm" onClick={handleClear} aria-label="Clear whiteboard">
               <Trash className="w-4 h-4" />
             </Button>
-            <Button
-              onClick={handleSave}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save
+            <Button onClick={handleSave} className="bg-purple-600 hover:bg-purple-700">
+              <Save className="w-4 h-4 mr-2" /> Save
             </Button>
           </div>
         </div>
-        <div
-          className="flex-1 bg-gray-900/40 backdrop-blur-xl border border-gray-700/30 rounded-2xl overflow-hidden"
-          ref={containerRef}
-        >
+        <div className="flex-1 min-h-[320px] bg-gray-900/40 border border-gray-700/30 rounded-2xl overflow-hidden" ref={containerRef}>
           <Stage
             width={stageSize.width}
             height={stageSize.height}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseup={handleMouseUp}
+            onMouseDown={handlePointerDown}
+            onMouseMove={handlePointerMove}
+            onMouseUp={handlePointerUp}
+            onMouseLeave={handlePointerUp}
+            onTouchStart={handlePointerDown}
+            onTouchMove={handlePointerMove}
+            onTouchEnd={handlePointerUp}
             ref={stageRef}
             className="cursor-crosshair"
           >
             <Layer>
-              {lines.map((shape, i) => {
-                if (
-                  shape.attrs.tool === "pen" ||
-                  shape.attrs.tool === "eraser"
-                ) {
+              {lines.map((shape, index) => {
+                const { tool: shapeTool, ...attrs } = shape.attrs;
+                if (shapeTool === "pen" || shapeTool === "eraser") {
                   return (
                     <Line
-                      key={i}
-                      {...shape.attrs}
-                      globalCompositeOperation={
-                        shape.attrs.tool === "eraser"
-                          ? "destination-out"
-                          : "source-over"
-                      }
+                      key={index}
+                      {...attrs}
+                      points={attrs.points ?? []}
+                      globalCompositeOperation={shapeTool === "eraser" ? "destination-out" : "source-over"}
                     />
                   );
-                } else if (shape.attrs.tool === "text") {
-                  return <Text key={i} {...shape.attrs} />;
-                } else if (shape.attrs.tool === "rectangle") {
-                  return <Rect key={i} {...shape.attrs} />;
-                } else if (shape.attrs.tool === "circle") {
-                  return <Circle key={i} {...shape.attrs} />;
                 }
+                if (shapeTool === "text") return <Text key={index} {...attrs} text={attrs.text ?? ""} />;
+                if (shapeTool === "rectangle") return <Rect key={index} {...attrs} />;
+                if (shapeTool === "circle") return <Circle key={index} {...attrs} />;
                 return null;
               })}
             </Layer>

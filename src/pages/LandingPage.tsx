@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   MessageSquare,
@@ -16,12 +16,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const fadeIn = {
+const fadeIn: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -65,7 +65,6 @@ const Index = () => {
               <a href="#features" className="hover:text-white transition-colors">Product</a>
               <a href="#how-it-works" className="hover:text-white transition-colors">Features</a>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-              <a href="#resources" className="hover:text-white transition-colors">Resources</a>
             </nav>
 
             {/* CTA Buttons */}
@@ -158,6 +157,7 @@ const Index = () => {
                   size="lg" 
                   variant="outline" 
                   className="w-full sm:w-auto rounded-full px-8 py-6 text-lg font-medium border-white/10 bg-transparent text-white hover:bg-white/5 group"
+                  onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
                 >
                   <Play className="w-5 h-5 mr-2 text-slate-400 group-hover:text-white transition-colors" />
                   Watch Demo
@@ -552,7 +552,7 @@ const Index = () => {
                     </li>
                   ))}
                 </ul>
-                <Button variant="outline" className="w-full border-white/10 bg-transparent text-white hover:bg-white/5">Get Started</Button>
+                <Button variant="outline" onClick={() => navigate("/sign-up")} className="w-full border-white/10 bg-transparent text-white hover:bg-white/5">Get Started</Button>
               </div>
 
               {/* Pro Plan */}
@@ -568,7 +568,7 @@ const Index = () => {
                     </li>
                   ))}
                 </ul>
-                <Button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white">Upgrade to Pro</Button>
+                <Button disabled title="Pro subscriptions are coming soon" className="w-full bg-indigo-500 text-white">Pro — Coming Soon</Button>
               </div>
 
               {/* Campus Plan */}
@@ -583,7 +583,7 @@ const Index = () => {
                     </li>
                   ))}
                 </ul>
-                <Button variant="outline" className="w-full border-white/10 bg-transparent text-white hover:bg-white/5">Contact Sales</Button>
+                <Button disabled title="Campus plans are coming soon" variant="outline" className="w-full border-white/10 bg-transparent text-white">Campus — Coming Soon</Button>
               </div>
             </div>
           </div>
@@ -630,8 +630,10 @@ const Index = () => {
                 size="lg" 
                 variant="outline" 
                 className="rounded-full px-10 py-6 text-lg font-medium border-white/10 bg-transparent text-white hover:bg-white/5"
+                disabled
+                title="Demo booking is coming soon"
               >
-                Book a Demo
+                Demo Booking — Coming Soon
               </Button>
             </motion.div>
           </div>
@@ -657,29 +659,22 @@ const Index = () => {
             <div>
               <h4 className="font-semibold text-white mb-4">Product</h4>
               <ul className="space-y-3 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Integrations</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Changelog</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-semibold text-white mb-4">Company</h4>
               <ul className="space-y-3 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+                <li><span className="text-slate-600">Company pages coming soon</span></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-semibold text-white mb-4">Legal</h4>
               <ul className="space-y-3 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
+                <li><span className="text-slate-600">Legal pages coming soon</span></li>
               </ul>
             </div>
           </div>

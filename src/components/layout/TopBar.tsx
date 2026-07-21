@@ -1,15 +1,17 @@
 import { useRef, useState } from 'react';
-import { Search, Plus, LogOut } from 'lucide-react';
+import { Search, Plus, LogOut, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useTheme } from '@/context/theme';
 
 export function TopBar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const focusSearch = () => {
     searchRef.current?.focus();
@@ -45,6 +47,15 @@ export function TopBar() {
 
       {/* Right side: Create + User */}
       <div className="flex items-center gap-3 ml-4">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-elevated text-foreground transition-colors hover:bg-muted"
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
         <Button
           onClick={() => navigate('/home')}
           className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 gap-2"

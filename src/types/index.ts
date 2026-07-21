@@ -7,7 +7,7 @@ export interface Note {
     _id: string;
     username: string;
     email: string;
-  };
+  } | null;
   chat: string;
   createdAt: string;
   updatedAt: string;
@@ -23,6 +23,7 @@ export type Meeting = {
   status: "active" | "scheduled" | "ended";
   scheduledTime: string;
   duration: string;
+  canManage?: boolean;
 };
 
 export type Whiteboard = {
@@ -31,9 +32,9 @@ export type Whiteboard = {
   groupId: string;
   createdBy: {
     _id: string;
-    username: string;
-  };
-  data: any;
+    username?: string;
+  } | null;
+  data: unknown;
   createdAt: string;
   updatedAt: string;
 };
@@ -45,7 +46,7 @@ export interface Group {
   icon?: string;
   usercount: number;
   lastMessage: string;
-  color: string;
+  color?: string;
 }
 
 export interface CreateGroupModalProps {
@@ -58,4 +59,25 @@ export interface IUser {
   _id: string;
   username: string;
   email: string;
+}
+
+export interface ApiProfile {
+  id: string;
+  username: string;
+  email: string;
+  photo?: string | null;
+}
+
+export interface ApiChatMember {
+  user_id: string;
+  profiles: ApiProfile | null;
+}
+
+export interface ApiChat {
+  id: string;
+  chat_name: string;
+  description?: string | null;
+  group_admin_id?: string | null;
+  chat_members?: ApiChatMember[];
+  messages?: { id: string; content: string; created_at: string } | null;
 }

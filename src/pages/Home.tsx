@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   MessageCircle,
   Users,
@@ -10,15 +10,17 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import type { Group } from "@/types/index";
+import type { ApiChat, Group } from "@/types/index";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/axiosInstance";
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,40 +31,41 @@ export default function HomePage() {
     notesCreated: 0,
   });
 
-  const fetchGroupsAndStats = async () => {
-    try {
-      setIsLoading(true);
-      const [chatRes, statsRes] = await Promise.all([
-        api.get("/chat"),
-        api.get("/users/me/stats")
-      ]);
+  const fetchGroupsAndStats = useCallback(async () => {
+    setIsLoading(true);
+    const [chatResult, statsResult] = await Promise.allSettled([
+        api.get<{ chats: ApiChat[] }>("/chat"),
+        api.get<typeof userStats>("/users/me/stats")
+    ]);
 
-      const normalizedGroups: Group[] = (Array.isArray(chatRes.data.chats)
-        ? chatRes.data.chats
+    if (chatResult.status === "fulfilled") {
+      const normalizedGroups: Group[] = (Array.isArray(chatResult.value.data.chats)
+        ? chatResult.value.data.chats
         : []
-      ).map((chat: any) => ({
+      ).map((chat) => ({
         _id: chat.id,
         chatName: chat.chat_name,
         description: chat.description || "No description",
         usercount: Array.isArray(chat.chat_members) ? chat.chat_members.length : 0,
         lastMessage: chat.messages?.content || "No messages yet",
       }));
-
       setGroups(normalizedGroups);
-      if (statsRes.data) {
-        setUserStats(statsRes.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch groups or stats:", error);
+    } else {
+      console.error("Failed to fetch groups:", chatResult.reason);
       setGroups([]);
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    if (statsResult.status === "fulfilled") {
+      setUserStats(statsResult.value.data);
+    } else {
+      console.error("Failed to fetch user stats:", statsResult.reason);
+    }
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     fetchGroupsAndStats();
-  }, []);
+  }, [fetchGroupsAndStats]);
 
   const handleGroupClick = (id: string) => {
     navigate(`/chat/${id}`);
@@ -87,7 +90,9 @@ export default function HomePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <h1 className="text-3xl font-semibold tracking-tight mb-2">Good Evening, Student</h1>
+          <h1 className="text-3xl font-semibold tracking-tight mb-2">
+            Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {user?.username || "Student"}
+          </h1>
           <p className="text-muted-foreground">Here is what's happening in your workspace today.</p>
         </motion.div>
         
@@ -231,7 +236,7 @@ export default function HomePage() {
                 {groups.slice(0, 3).map(group => (
                   <div
                     key={group._id}
-                    onClick={() => navigate(`/chat/${group._id}`)}
+                    onClick={() => navigate(`/chat/${group._id}?tab=meetings`)}
                     className="p-3 rounded-xl bg-elevated border border-border hover:border-primary/30 transition-colors cursor-pointer flex items-center gap-3 group"
                   >
                     <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/20">
@@ -250,7 +255,7 @@ export default function HomePage() {
             <Button
               variant="outline"
               className="w-full mt-4 rounded-xl border-border"
-              onClick={() => groups.length > 0 ? navigate(`/chat/${groups[0]._id}`) : setShowModal(true)}
+              onClick={() => groups.length > 0 ? navigate(`/chat/${groups[0]._id}?tab=meetings`) : setShowModal(true)}
             >
               {groups.length > 0 ? 'Go to Meetings' : 'Create a Workspace First'}
             </Button>

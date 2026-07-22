@@ -1,7 +1,7 @@
 // src/App.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { FileText, Monitor, Video, Calendar, Folder, Settings, MessageCircle } from "lucide-react";
+import { FileText, Monitor, Video, Folder, Settings, MessageCircle } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -14,6 +14,7 @@ const Home = lazy(() => import("./pages/Home"));
 const Profile = lazy(() => import("./pages/Profile"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const GroupListPage = lazy(() => import("./pages/GroupListPage"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
@@ -86,7 +87,7 @@ function App() {
       <Route
         path="/calendar"
         element={isAuthenticated
-          ? <WorkspaceLayout><div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground"><Calendar className="w-10 h-10 opacity-20" /><p className="text-sm">Calendar coming soon</p></div></WorkspaceLayout>
+          ? <WorkspaceLayout><CalendarPage /></WorkspaceLayout>
           : <Navigate to="/sign-in" />}
       />
       <Route

@@ -1,14 +1,13 @@
-// src/pages/SignUp.tsx
-import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Activity, Loader2, CheckCircle2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { AuthShell } from "@/components/auth/AuthShell";
 
-const SignUp: React.FC = () => {
+export default function SignUp() {
   const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,134 +15,43 @@ const SignUp: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated) navigate("/home");
-  }, [isAuthenticated, navigate]);
+  useEffect(() => { if (isAuthenticated) navigate("/home"); }, [isAuthenticated, navigate]);
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignUp = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      await register(email, username, password);
+      await register(email.trim(), username.trim(), password);
       setEmailSent(true);
       toast.success("Account created! Check your email to confirm.");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "An error occurred during registration.";
-      setError(msg);
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
+      const message = err instanceof Error ? err.message : "An error occurred during registration.";
+      setError(message);
+      toast.error(message);
+    } finally { setLoading(false); }
   };
 
-  if (emailSent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4 font-sans text-foreground">
-        <div className="w-full max-w-[360px] text-center">
-          <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-          </div>
-          <h2 className="text-[20px] font-semibold text-foreground mb-2 tracking-tight">Check your email</h2>
-          <p className="text-[14px] text-muted-foreground mb-6 leading-relaxed">
-            We sent a confirmation link to <span className="text-foreground font-medium">{email}</span>. Click it to activate your account.
-          </p>
-          <Link 
-            to="/sign-in" 
-            className="inline-flex h-9 items-center justify-center px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-medium rounded-md transition-colors w-full"
-          >
-            Return to sign in
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 font-sans selection:bg-primary/20 text-foreground">
-      <div className="w-full max-w-[360px]">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-10 h-10 bg-surface border border-border rounded-lg flex items-center justify-center mb-6 shadow-sm">
-            <Activity className="w-5 h-5 text-primary" />
-          </div>
-          <h1 className="text-[22px] font-semibold tracking-tight text-foreground mb-1.5">Create your workspace</h1>
-          <p className="text-[14px] text-muted-foreground">Enter your details to join StudyHive.</p>
+    <AuthShell title={emailSent ? "Check your inbox" : "Create your account"} description={emailSent ? "One quick confirmation and your workspace is ready." : "Bring your study group into one focused workspace."}>
+      {emailSent ? (
+        <div className="text-center">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10"><CheckCircle2 className="h-7 w-7 text-emerald-500" /></span>
+          <p className="mt-5 text-sm leading-6 text-muted-foreground">We sent a confirmation link to <strong className="text-foreground">{email}</strong>.</p>
+          <Link to="/sign-in" className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:bg-primary/90">Return to sign in</Link>
         </div>
-
-        {error && (
-          <div className="mb-6 p-3 rounded-md bg-red-500/10 border border-red-500/20 text-[13px] text-red-400 font-medium">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSignUp} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="username" className="block text-[13px] font-medium text-foreground/80">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="johndoe"
-              required
-              className="w-full px-3 py-2 bg-surface border border-border rounded-md text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary transition-all"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-[13px] font-medium text-foreground/80">
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
-              required
-              className="w-full px-3 py-2 bg-surface border border-border rounded-md text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary transition-all"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="block text-[13px] font-medium text-foreground/80">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={6}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-md text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary transition-all"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || !email || !password || !username}
-            className="w-full h-9 mt-2 flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-[14px] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : "Sign up"}
-          </button>
-        </form>
-
-        <div className="mt-8 pt-6 border-t border-border text-center">
-          <p className="text-[13px] text-muted-foreground">
-            Already have an account?{" "}
-            <Link to="/sign-in" className="text-primary font-medium hover:underline underline-offset-4">
-              Sign in
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+      ) : (
+        <>
+          {error && <div role="alert" className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-3 text-sm font-medium text-red-600 dark:text-red-300">{error}</div>}
+          <form onSubmit={handleSignUp} className="space-y-4">
+            <div className="space-y-2"><label htmlFor="username" className="text-sm font-medium">Username</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Your display name" autoComplete="username" required className="auth-input" /></div>
+            <div className="space-y-2"><label htmlFor="email" className="text-sm font-medium">Email address</label><input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required className="auth-input" /></div>
+            <div className="space-y-2"><label htmlFor="password" className="text-sm font-medium">Password</label><input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" autoComplete="new-password" required minLength={8} className="auth-input" /><p className="text-xs text-muted-foreground">Use 8 or more characters for a stronger account.</p></div>
+            <button type="submit" disabled={loading || !email.trim() || !password || !username.trim()} className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90 disabled:translate-y-0 disabled:opacity-55">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create account <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>}</button>
+          </form>
+          <p className="mt-7 border-t border-border pt-6 text-center text-sm text-muted-foreground">Already have an account? <Link to="/sign-in" className="font-semibold text-primary hover:underline hover:underline-offset-4">Sign in</Link></p>
+        </>
+      )}
+    </AuthShell>
   );
-};
-
-export default SignUp;
+}

@@ -36,7 +36,7 @@ export function Sidebar() {
       initial={{ width: 260 }}
       animate={{ width: collapsed ? 80 : 260 }}
       transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-      className="h-screen bg-surface border-r border-border flex flex-col relative z-20 flex-shrink-0"
+      className="h-screen bg-surface/88 backdrop-blur-xl border-r border-border/80 flex flex-col relative z-20 flex-shrink-0 shadow-[12px_0_32px_-30px_var(--shadow-soft)]"
     >
       {/* Collapse Toggle */}
       <button
@@ -69,7 +69,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                 isActive
-                  ? 'bg-primary/10 text-primary font-medium'
+                  ? 'bg-gradient-to-r from-primary/16 to-cyan-500/8 text-primary font-medium shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_10%,transparent)]'
                   : 'text-muted-foreground hover:bg-elevated hover:text-foreground'
               }`
             }

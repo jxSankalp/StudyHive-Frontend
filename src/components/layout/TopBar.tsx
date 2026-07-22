@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTheme } from '@/context/theme';
+import { NotificationBell } from '@/components/NotificationBell';
 
 export function TopBar() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export function TopBar() {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-surface/50 backdrop-blur-md sticky top-0 z-10 px-6 flex items-center justify-between">
+    <header className="h-16 border-b border-border/80 bg-surface/72 backdrop-blur-xl sticky top-0 z-10 px-6 flex items-center justify-between shadow-[0_8px_24px_-22px_var(--shadow-soft)]">
       {/* Left side: Search */}
       <div className="flex-1 max-w-xl">
         <div
@@ -47,6 +48,7 @@ export function TopBar() {
 
       {/* Right side: Create + User */}
       <div className="flex items-center gap-3 ml-4">
+        <NotificationBell />
         <button
           type="button"
           onClick={toggleTheme}
@@ -58,7 +60,7 @@ export function TopBar() {
         </button>
         <Button
           onClick={() => navigate('/home')}
-          className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 gap-2"
+          className="rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 text-primary-foreground shadow-lg shadow-primary/25 gap-2 transition hover:-translate-y-0.5"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Create</span>

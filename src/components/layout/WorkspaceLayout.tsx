@@ -8,7 +8,7 @@ interface WorkspaceLayoutProps {
 
 export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   return (
-    <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/30">
+    <div className="workspace-canvas flex h-screen overflow-hidden selection:bg-primary/30">
       {/* Sidebar */}
       <Sidebar />
 
@@ -17,8 +17,8 @@ export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
         <TopBar />
         
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-background/50">
-          <div className="h-full relative">
+        <main className="flex-1 overflow-y-auto bg-transparent">
+          <div className="page-enter h-full relative">
             {children}
           </div>
         </main>

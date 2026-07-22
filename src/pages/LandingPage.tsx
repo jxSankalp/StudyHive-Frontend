@@ -1,315 +1,154 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
-  MessageSquare,
-  Video,
+  Activity,
+  ArrowRight,
+  CalendarDays,
+  Check,
   FileText,
-  PenTool,
-  Users,
-  Search,
-  CheckCircle2,
   Menu,
+  MessageCircle,
+  Moon,
+  PenTool,
+  Search,
+  Sun,
+  Users,
+  Video,
   X,
-  Play,
-  Star
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useTheme } from "@/context/theme";
 
-const fadeIn: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+const reveal: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.48, ease: "easeOut" } },
 };
 
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
+const features = [
+  { icon: MessageCircle, title: "Group chat that stays useful", copy: "Keep decisions, questions, and resources in one searchable conversation." },
+  { icon: Video, title: "Meet without switching apps", copy: "Start a focused group call directly from the workspace where the work happens." },
+  { icon: FileText, title: "Notes everyone can build on", copy: "Turn a discussion into shared notes your group can refine together." },
+  { icon: PenTool, title: "A whiteboard for hard problems", copy: "Sketch an idea, explain a formula, and make thinking visible in real time." },
+  { icon: CalendarDays, title: "A schedule the group can trust", copy: "Put sessions, deadlines, and meetings on one shared calendar." },
+  { icon: Search, title: "Find the thread fast", copy: "Move between workspaces and return to the right context without digging." },
+];
 
-const Index = () => {
-  const navigate = useNavigate();
+const steps = [
+  { number: "01", title: "Create a workspace", copy: "Set up a home for a subject, project, or exam group." },
+  { number: "02", title: "Bring in your group", copy: "Invite classmates and put the plan where everyone can see it." },
+  { number: "03", title: "Get the work moving", copy: "Chat, meet, plan, and capture what your group learns." },
+];
+
+export default function LandingPage() {
+  const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 16);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const ThemeButton = ({ mobile = false }: { mobile?: boolean }) => (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className={`${mobile ? "h-11 w-full justify-start px-4" : "h-10 w-10 justify-center"} inline-flex items-center gap-3 rounded-xl border border-border bg-surface/80 text-muted-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:text-foreground`}
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+    >
+      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      {mobile && <span className="text-sm font-medium">{theme === "dark" ? "Light mode" : "Dark mode"}</span>}
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-slate-50 font-sans selection:bg-indigo-500/30">
-      {/* 1. Navbar */}
-      <header
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          scrolled ? "bg-[#0A0A0B]/80 backdrop-blur-md border-b border-white/5" : "bg-transparent pt-4"
-        }`}
-      >
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                <div className="w-3 h-3 bg-white rounded-full" />
-              </div>
-              <span className="font-bold text-xl tracking-tight">StudyHive</span>
-            </div>
+    <div className="workspace-canvas min-h-screen overflow-x-hidden text-foreground selection:bg-primary/20">
+      <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${scrolled ? "border-b border-border/80 bg-surface/80 shadow-sm backdrop-blur-xl" : "bg-transparent"}`}>
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 sm:px-8">
+          <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20"><Activity className="h-4.5 w-4.5" /></span>
+            <span className="text-lg">StudyHive</span>
+          </Link>
 
-            {/* Desktop Links */}
-            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-              <a href="#features" className="hover:text-white transition-colors">Product</a>
-              <a href="#how-it-works" className="hover:text-white transition-colors">Features</a>
-              <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-            </nav>
+          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex" aria-label="Main navigation">
+            <a href="#features" className="transition hover:text-foreground">Features</a>
+            <a href="#how-it-works" className="transition hover:text-foreground">How it works</a>
+            <a href="#pricing" className="transition hover:text-foreground">Pricing</a>
+          </nav>
 
-            {/* CTA Buttons */}
-            <div className="hidden md:flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                className="text-slate-300 hover:text-white hover:bg-white/5"
-                onClick={() => navigate("/sign-in")}
-              >
-                Log In
-              </Button>
-              <Button 
-                className="bg-white text-black hover:bg-slate-200 rounded-full px-6 font-medium shadow-lg shadow-white/10 transition-all hover:scale-105"
-                onClick={() => navigate("/sign-up")}
-              >
-                Get Started Free
-              </Button>
-            </div>
-
-            {/* Mobile Menu Toggle */}
-            <button 
-              className="md:hidden text-slate-300"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X /> : <Menu />}
-            </button>
+          <div className="hidden items-center gap-2 md:flex">
+            <ThemeButton />
+            <Link to="/sign-in" className="inline-flex h-10 items-center rounded-xl px-4 text-sm font-semibold text-foreground transition hover:bg-elevated">Sign in</Link>
+            <Link to="/sign-up" className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90">Create account <ArrowRight className="h-4 w-4" /></Link>
           </div>
+
+          <button type="button" onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-surface/80 text-foreground md:hidden" aria-label={mobileMenuOpen ? "Close menu" : "Open menu"} aria-expanded={mobileMenuOpen}>
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
 
-        {/* Mobile Menu */}
         <AnimatePresence>
           {mobileMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-[#111113] border-b border-white/5 overflow-hidden"
-            >
-              <div className="flex flex-col px-6 py-4 space-y-4">
-                <a href="#features" className="text-slate-300 py-2 border-b border-white/5">Product</a>
-                <a href="#how-it-works" className="text-slate-300 py-2 border-b border-white/5">Features</a>
-                <a href="#pricing" className="text-slate-300 py-2 border-b border-white/5">Pricing</a>
-                <Button variant="outline" className="w-full mt-4 border-white/10 bg-transparent text-white hover:bg-white/5" onClick={() => navigate("/sign-in")}>Log In</Button>
-                <Button className="w-full bg-white text-black hover:bg-slate-200" onClick={() => navigate("/sign-up")}>Get Started Free</Button>
-              </div>
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden border-b border-border bg-surface/95 backdrop-blur-xl md:hidden">
+              <nav className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-5" aria-label="Mobile navigation">
+                {[['Features', '#features'], ['How it works', '#how-it-works'], ['Pricing', '#pricing']].map(([label, href]) => <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-elevated hover:text-foreground">{label}</a>)}
+                <ThemeButton mobile />
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-4">
+                  <Link to="/sign-in" className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-surface text-sm font-semibold">Sign in</Link>
+                  <Link to="/sign-up" className="inline-flex h-11 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground">Sign up</Link>
+                </div>
+              </nav>
             </motion.div>
           )}
         </AnimatePresence>
       </header>
 
       <main>
-        {/* 2. Hero Section */}
-        <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
-          {/* Subtle Background Gradients */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none" />
-          <div className="absolute top-40 -left-20 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
-          
-          <div className="container mx-auto px-6 max-w-7xl relative z-10 text-center">
-            <motion.div 
-              initial="hidden"
-              animate="visible"
-              variants={staggerContainer}
-              className="max-w-4xl mx-auto space-y-8"
-            >
-              <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium mb-4">
-                <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                Introducing StudyHive 2.0
+        <section className="relative px-5 pb-20 pt-34 sm:px-8 md:pb-28 md:pt-44">
+          <div className="pointer-events-none absolute left-1/2 top-8 h-[32rem] w-[54rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[0.92fr_1.08fr]">
+            <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.09 } } }}>
+              <motion.div variants={reveal} className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Built for groups that want to get things done
               </motion.div>
-
-              <motion.h1 variants={fadeIn} className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-[1.1]">
-                The smarter way to <br className="hidden md:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
-                  study together.
-                </span>
+              <motion.h1 variants={reveal} className="max-w-3xl text-5xl font-semibold leading-[1.04] tracking-[-0.05em] sm:text-6xl xl:text-7xl">
+                Study together, without the app juggling.
               </motion.h1>
-
-              <motion.p variants={fadeIn} className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                StudyHive helps students chat, meet, write notes, and brainstorm together in one seamless platform. Built for the modern study group.
+              <motion.p variants={reveal} className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">
+                StudyHive gives your group one calm place to talk, plan sessions, share notes, solve problems, and meet face to face.
               </motion.p>
-
-              <motion.div variants={fadeIn} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <Button 
-                  size="lg" 
-                  className="w-full sm:w-auto bg-white text-black hover:bg-slate-200 rounded-full px-8 py-6 text-lg font-medium shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-transform hover:scale-105"
-                  onClick={() => navigate("/sign-up")}
-                >
-                  Start Free
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="w-full sm:w-auto rounded-full px-8 py-6 text-lg font-medium border-white/10 bg-transparent text-white hover:bg-white/5 group"
-                  onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
-                >
-                  <Play className="w-5 h-5 mr-2 text-slate-400 group-hover:text-white transition-colors" />
-                  Watch Demo
-                </Button>
+              <motion.div variants={reveal} className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link to="/sign-up" className="group inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-primary px-7 text-sm font-semibold text-primary-foreground shadow-xl shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90">Start for free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></Link>
+                <Link to="/sign-in" className="inline-flex h-13 items-center justify-center rounded-xl border border-border bg-surface/75 px-7 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-surface">I already have an account</Link>
+              </motion.div>
+              <motion.div variants={reveal} className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
+                {['Free to start', 'No card required', 'Set up in minutes'].map((item) => <span key={item} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />{item}</span>)}
               </motion.div>
             </motion.div>
 
-            {/* Hero Visual Mockup */}
-            <motion.div 
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.8, ease: "easeOut" }}
-              className="mt-20 relative mx-auto max-w-5xl"
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent blur-2xl rounded-3xl" />
-              <div className="relative rounded-2xl border border-white/10 bg-[#111113]/80 backdrop-blur-xl shadow-2xl overflow-hidden aspect-[16/9] flex items-center justify-center">
-                {/* Abstract mockup representation */}
-                <div className="w-full h-full flex flex-col">
-                  {/* Mockup Header */}
-                  <div className="h-12 border-b border-white/5 flex items-center px-4 gap-2 bg-[#0A0A0B]/50">
-                    <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-slate-700 hover:bg-red-500 transition-colors cursor-pointer" />
-                      <div className="w-3 h-3 rounded-full bg-slate-700 hover:bg-yellow-500 transition-colors cursor-pointer" />
-                      <div className="w-3 h-3 rounded-full bg-slate-700 hover:bg-green-500 transition-colors cursor-pointer" />
-                    </div>
-                    <div className="ml-4 flex-1 h-6 bg-white/5 rounded border border-white/5 flex items-center px-3 max-w-md">
-                      <Search className="w-3 h-3 text-slate-500 mr-2" />
-                      <div className="h-2 w-24 bg-white/10 rounded" />
-                    </div>
-                  </div>
-                  {/* Mockup Body */}
-                  <div className="flex-1 flex p-4 gap-4 bg-[#0A0A0B]/20">
-                    {/* Sidebar */}
-                    <div className="hidden sm:flex w-48 rounded-lg bg-white/5 border border-white/5 p-3 flex-col gap-4">
-                       <div>
-                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Study Groups</div>
-                         <div className="flex items-center gap-2 mb-2 p-1.5 bg-white/5 rounded cursor-pointer">
-                           <div className="w-5 h-5 rounded flex items-center justify-center bg-indigo-500/20 text-indigo-400">
-                             <Users className="w-3 h-3" />
-                           </div>
-                           <div className="h-2.5 w-20 bg-white/20 rounded"></div>
-                         </div>
-                         <div className="flex items-center gap-2 mb-2 p-1.5 hover:bg-white/5 rounded cursor-pointer transition-colors">
-                           <div className="w-5 h-5 rounded flex items-center justify-center bg-purple-500/20 text-purple-400">
-                             <Users className="w-3 h-3" />
-                           </div>
-                           <div className="h-2.5 w-24 bg-white/10 rounded"></div>
-                         </div>
-                       </div>
-                       
-                       <div>
-                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Direct Messages</div>
-                         <div className="flex items-center gap-2 mb-2 p-1.5 hover:bg-white/5 rounded cursor-pointer transition-colors">
-                           <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500" />
-                           <div className="h-2.5 w-16 bg-white/10 rounded"></div>
-                         </div>
-                         <div className="flex items-center gap-2 p-1.5 hover:bg-white/5 rounded cursor-pointer transition-colors">
-                           <div className="w-5 h-5 rounded-full bg-gradient-to-br from-pink-400 to-red-500" />
-                           <div className="h-2.5 w-20 bg-white/10 rounded"></div>
-                         </div>
-                       </div>
-                    </div>
-                    {/* Main Content */}
-                    <div className="flex-1 flex flex-col gap-4 min-w-0">
-                      {/* Video feeds */}
-                      <div className="h-32 sm:h-40 rounded-lg bg-[#0A0A0B] border border-white/5 p-2 grid grid-cols-2 md:grid-cols-4 gap-2">
-                         {[...Array(4)].map((_, i) => (
-                           <div key={i} className="bg-[#151518] rounded-md border border-white/5 flex items-center justify-center relative overflow-hidden group">
-                              {i === 0 && <div className="absolute inset-0 bg-indigo-500/10 mix-blend-overlay" />}
-                              <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-sm text-indigo-300 border border-indigo-500/30">
-                                {String.fromCharCode(65 + i)}
-                              </div>
-                              <div className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[9px] text-slate-300 flex items-center gap-1.5">
-                                <div className={`w-1.5 h-1.5 rounded-full ${i === 2 ? 'bg-red-500' : 'bg-green-500'}`} />
-                                Student {i+1}
-                              </div>
-                           </div>
-                         ))}
-                      </div>
-                      {/* Bottom area split: Chat & Notes */}
-                      <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
-                         {/* Chat */}
-                         <div className="flex-1 rounded-lg bg-[#0A0A0B] border border-white/5 p-3 flex flex-col min-h-0">
-                           <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/5">
-                              <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
-                              <span className="text-xs font-medium text-slate-300">Group Chat</span>
-                           </div>
-                           <div className="flex-1 overflow-hidden flex flex-col justify-end gap-3 pb-2">
-                             <div className="flex items-end gap-2">
-                                <div className="w-6 h-6 rounded-full bg-indigo-500/30 shrink-0" />
-                                <div className="bg-white/5 border border-white/5 text-slate-300 p-2 rounded-xl rounded-bl-sm text-[10px] w-5/6 shadow-sm">Hey, did anyone finish the physics assignment?</div>
-                             </div>
-                             <div className="flex items-end gap-2 self-end flex-row-reverse">
-                                <div className="w-6 h-6 rounded-full bg-cyan-500/30 shrink-0" />
-                                <div className="bg-indigo-500 text-white p-2 rounded-xl rounded-br-sm text-[10px] w-5/6 shadow-sm">Almost done! Just stuck on question 4. Let's solve it together.</div>
-                             </div>
-                           </div>
-                           <div className="h-8 mt-2 rounded bg-white/5 border border-white/5 flex items-center px-2">
-                             <div className="h-2 w-32 bg-white/10 rounded" />
-                           </div>
-                         </div>
-                         {/* Notes */}
-                         <div className="flex-[1.5] rounded-lg bg-[#0A0A0B] border border-white/5 p-4 flex flex-col min-h-0 hidden sm:flex">
-                           <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/5">
-                              <div className="flex items-center gap-2">
-                                <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                                <span className="text-xs font-medium text-slate-300">Physics_Notes_Ch4.md</span>
-                              </div>
-                              <div className="flex gap-[-4px]">
-                                <div className="w-4 h-4 rounded-full bg-indigo-500 border border-[#0A0A0B] z-10" />
-                                <div className="w-4 h-4 rounded-full bg-cyan-500 border border-[#0A0A0B] -ml-1.5" />
-                              </div>
-                           </div>
-                           <div className="space-y-3 flex-1 overflow-hidden">
-                             <div className="h-3 w-1/3 bg-white/20 rounded" />
-                             <div className="space-y-1.5 pt-1">
-                               <div className="h-2 w-full bg-white/5 rounded" />
-                               <div className="h-2 w-full bg-white/5 rounded" />
-                               <div className="h-2 w-5/6 bg-white/5 rounded" />
-                             </div>
-                             <div className="h-2 w-1/4 bg-white/10 rounded mt-3" />
-                             <div className="space-y-1.5 pt-1">
-                               <div className="h-2 w-full bg-white/5 rounded" />
-                               <div className="flex items-center gap-1">
-                                 <div className="h-2 w-2/3 bg-white/5 rounded" />
-                                 <div className="h-3 w-0.5 bg-cyan-400 animate-pulse" /> {/* Fake cursor */}
-                               </div>
-                             </div>
-                           </div>
-                         </div>
-                      </div>
-                    </div>
-                  </div>
+            <motion.div initial={{ opacity: 0, y: 28, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.2, duration: 0.65, ease: "easeOut" }} className="relative">
+              <div className="absolute -inset-7 rounded-[2.5rem] bg-gradient-to-br from-primary/16 to-accent/10 blur-2xl" />
+              <div className="relative overflow-hidden rounded-3xl border border-border bg-surface/90 p-3 shadow-[0_35px_90px_-42px_var(--shadow-soft)] backdrop-blur-xl">
+                <div className="flex items-center gap-2 border-b border-border px-3 pb-3">
+                  <div className="flex gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-red-400" /><i className="h-2.5 w-2.5 rounded-full bg-amber-400" /><i className="h-2.5 w-2.5 rounded-full bg-emerald-400" /></div>
+                  <div className="ml-3 flex h-8 flex-1 items-center gap-2 rounded-lg bg-elevated px-3 text-xs text-muted-foreground"><Search className="h-3.5 w-3.5" /> Search your workspace</div>
                 </div>
-
-                {/* Floating Stats over Mockup */}
-                <div className="absolute -left-6 top-1/4 bg-[#1A1A1D] border border-white/10 rounded-xl p-4 shadow-xl backdrop-blur-md hidden lg:block animate-[float_4s_ease-in-out_infinite]">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-indigo-500/20 p-2 rounded-lg"><Users className="w-5 h-5 text-indigo-400" /></div>
-                    <div>
-                      <p className="text-sm text-slate-400 font-medium">Active Students</p>
-                      <p className="text-xl font-bold text-white">50K+</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="absolute -right-6 bottom-1/3 bg-[#1A1A1D] border border-white/10 rounded-xl p-4 shadow-xl backdrop-blur-md hidden lg:block animate-[float_5s_ease-in-out_infinite_reverse]">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-cyan-500/20 p-2 rounded-lg"><Star className="w-5 h-5 text-cyan-400" fill="currentColor" /></div>
-                    <div>
-                      <p className="text-sm text-slate-400 font-medium">Satisfaction</p>
-                      <p className="text-xl font-bold text-white">98%</p>
+                <div className="grid min-h-[390px] grid-cols-[72px_1fr] gap-3 pt-3 sm:grid-cols-[180px_1fr]">
+                  <aside className="rounded-2xl bg-elevated/70 p-2.5">
+                    <p className="hidden px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:block">Workspaces</p>
+                    {['Calculus II', 'Physics lab', 'Finals prep'].map((group, index) => <div key={group} className={`mt-1 flex items-center gap-2 rounded-xl p-2 text-xs ${index === 0 ? 'bg-surface font-semibold text-foreground shadow-sm' : 'text-muted-foreground'}`}><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Users className="h-3.5 w-3.5" /></span><span className="hidden truncate sm:block">{group}</span></div>)}
+                  </aside>
+                  <div className="flex min-w-0 flex-col gap-3">
+                    <div className="flex items-center justify-between rounded-2xl border border-border bg-background/55 px-4 py-3"><div><p className="text-sm font-semibold">Calculus II</p><p className="text-xs text-muted-foreground">6 people · 3 online</p></div><span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground"><Video className="h-4 w-4" /></span></div>
+                    <div className="grid flex-1 gap-3 md:grid-cols-[1.15fr_.85fr]">
+                      <div className="flex flex-col rounded-2xl border border-border bg-background/45 p-4">
+                        <p className="flex items-center gap-2 text-xs font-semibold"><MessageCircle className="h-4 w-4 text-primary" /> Group chat</p>
+                        <div className="mt-auto space-y-3 pt-8"><div className="mr-8 rounded-2xl rounded-bl-sm bg-elevated p-3 text-xs text-muted-foreground">Can we review integration by parts tonight?</div><div className="ml-8 rounded-2xl rounded-br-sm bg-primary p-3 text-xs text-primary-foreground">Yes—I've added it to the calendar for 6:30.</div></div>
+                        <div className="mt-4 h-10 rounded-xl border border-border bg-surface px-3 py-2.5 text-xs text-muted-foreground">Message the group…</div>
+                      </div>
+                      <div className="hidden rounded-2xl border border-border bg-surface p-4 md:block"><p className="flex items-center gap-2 text-xs font-semibold"><FileText className="h-4 w-4 text-cyan-600 dark:text-cyan-400" /> Session notes</p><div className="mt-5 h-2 w-3/4 rounded-full bg-muted" /><div className="mt-3 h-2 w-full rounded-full bg-muted" /><div className="mt-3 h-2 w-5/6 rounded-full bg-muted" /><div className="mt-8 rounded-xl border border-primary/15 bg-primary/6 p-3 text-xs leading-5 text-muted-foreground">Next: solve practice questions 12–18 before Thursday.</div></div>
                     </div>
                   </div>
                 </div>
@@ -318,391 +157,27 @@ const Index = () => {
           </div>
         </section>
 
-        {/* 3. Trusted By */}
-        <section className="py-12 border-y border-white/5 bg-[#0A0A0B]">
-          <div className="container mx-auto px-6 max-w-7xl text-center">
-            <p className="text-sm font-medium text-slate-500 uppercase tracking-widest mb-8">Trusted by students at top institutions</p>
-            <div className="flex flex-wrap justify-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-              {/* Placeholder Logos */}
-              <div className="text-xl font-bold font-serif">Stanford</div>
-              <div className="text-xl font-bold font-serif tracking-tighter">MIT</div>
-              <div className="text-xl font-bold font-serif">Harvard</div>
-              <div className="text-xl font-bold font-sans">Berkeley</div>
-              <div className="text-xl font-bold font-serif">Oxford</div>
+        <section id="features" className="border-y border-border/80 bg-surface/45 px-5 py-22 sm:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-2xl"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">One connected workflow</p><h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Everything your study group reaches for.</h2><p className="mt-4 text-lg leading-8 text-muted-foreground">Useful collaboration tools, designed to feel like one product instead of a folder of links.</p></div>
+            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {features.map(({ icon: Icon, title, copy }, index) => <motion.article key={title} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { delay: index * 0.05, duration: 0.4 } } }} className="glass-card group p-6"><span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:-translate-y-0.5 group-hover:bg-primary group-hover:text-primary-foreground"><Icon className="h-5 w-5" /></span><h3 className="mt-5 text-lg font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{copy}</p></motion.article>)}
             </div>
           </div>
         </section>
 
-        {/* 4. Features Section */}
-        <section id="features" className="py-24 relative">
-          <div className="container mx-auto px-6 max-w-7xl">
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={fadeIn}
-              className="mb-16 md:mb-24"
-            >
-              <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
-                Everything you need. <br />
-                <span className="text-slate-500">Nothing you don't.</span>
-              </h2>
-              <p className="text-lg text-slate-400 max-w-2xl">
-                Replace your fragmented toolstack. StudyHive brings together chat, video, notes, and whiteboards into one unified, lightning-fast workspace.
-              </p>
-            </motion.div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { icon: MessageSquare, title: "Real-Time Chat", desc: "Fast messaging for study groups and class discussions. Threaded replies and reactions." },
-                { icon: Video, title: "HD Video Meetings", desc: "Run distraction-free study sessions with crystal clear video and screen sharing." },
-                { icon: FileText, title: "Collaborative Notes", desc: "Write together in real time with synced notes, markdown support, and live cursors." },
-                { icon: PenTool, title: "Interactive Whiteboards", desc: "Visualize ideas, solve complex equations, and brainstorm concepts on an infinite canvas." },
-                { icon: Users, title: "Group Management", desc: "Create private or public study circles with granular role controls and permissions." },
-                { icon: Search, title: "Smart Search & AI", desc: "Find notes, chats, and summaries instantly across your entire workspace." }
-              ].map((feature, i) => (
-                <motion.div 
-                  key={i}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    visible: { opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5 } }
-                  }}
-                  className="bg-[#111113] border border-white/5 rounded-2xl p-8 hover:bg-[#151518] hover:border-white/10 transition-colors group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <feature.icon className="w-6 h-6 text-indigo-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-slate-100 mb-3">{feature.title}</h3>
-                  <p className="text-slate-400 leading-relaxed">{feature.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+        <section id="how-it-works" className="px-5 py-22 sm:px-8">
+          <div className="mx-auto max-w-7xl"><div className="text-center"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">A simple start</p><h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">From blank page to working group.</h2></div><div className="relative mt-13 grid gap-5 md:grid-cols-3"><div className="absolute left-[16%] right-[16%] top-7 hidden h-px bg-border md:block" />{steps.map((step) => <article key={step.number} className="relative rounded-2xl border border-border bg-surface/75 p-6 shadow-sm"><span className="relative z-10 grid h-14 w-14 place-items-center rounded-2xl border border-primary/20 bg-primary/10 font-mono text-sm font-semibold text-primary">{step.number}</span><h3 className="mt-6 text-xl font-semibold">{step.title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{step.copy}</p></article>)}</div></div>
         </section>
 
-        {/* 5. Why Choose StudyHive */}
-        <section className="py-24 bg-[#0A0A0B] relative overflow-hidden border-y border-white/5">
-           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/5 blur-[150px] rounded-full pointer-events-none" />
-           
-          <div className="container mx-auto px-6 max-w-7xl">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <motion.div 
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={staggerContainer}
-              >
-                <motion.h2 variants={fadeIn} className="text-3xl md:text-5xl font-bold mb-8 leading-tight">
-                  Designed exclusively <br/> for the way you study.
-                </motion.h2>
-                
-                <div className="space-y-6">
-                  {[
-                    "Everything in one unified platform",
-                    "No contextual switching between apps",
-                    "Optimized for academic workflows",
-                    "End-to-end secure and private",
-                    "Blazing fast and reliable",
-                    "Syncs seamlessly across all devices"
-                  ].map((item, i) => (
-                    <motion.div variants={fadeIn} key={i} className="flex items-center gap-4">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                      </div>
-                      <span className="text-lg text-slate-300">{item}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, x: 40 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
-                className="relative"
-              >
-                <div className="rounded-2xl border border-white/10 bg-[#111113] p-2 shadow-2xl relative z-10">
-                   <div className="rounded-xl border border-white/5 bg-[#151518] aspect-[4/3] flex flex-col overflow-hidden">
-                      <div className="h-10 border-b border-white/5 flex items-center px-4 bg-[#1A1A1D]">
-                         <div className="text-xs font-medium text-slate-400">Study Group: Advanced Physics</div>
-                      </div>
-                      <div className="flex-1 flex relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5" />
-                        {/* Placeholder UI */}
-                        <div className="w-1/3 border-r border-white/5 p-4 space-y-3">
-                           <div className="h-8 bg-white/5 rounded-md flex items-center px-3 gap-2"><div className="w-3 h-3 rounded-full bg-indigo-500/50"/><div className="h-2 w-12 bg-white/20 rounded"/></div>
-                           <div className="h-8 bg-white/5 rounded-md flex items-center px-3 gap-2"><div className="w-3 h-3 rounded-full bg-purple-500/50"/><div className="h-2 w-16 bg-white/20 rounded"/></div>
-                           <div className="h-8 bg-white/5 rounded-md flex items-center px-3 gap-2"><div className="w-3 h-3 rounded-full bg-cyan-500/50"/><div className="h-2 w-10 bg-white/20 rounded"/></div>
-                        </div>
-                        <div className="flex-1 p-6 flex flex-col">
-                           <div className="flex items-center gap-2 mb-4">
-                              <PenTool className="w-5 h-5 text-indigo-400" />
-                              <div className="h-4 w-32 bg-white/10 rounded" />
-                           </div>
-                           <div className="flex-1 bg-white/5 rounded-lg border border-white/5 p-4 flex items-center justify-center relative overflow-hidden">
-                              {/* Fake whiteboard content */}
-                              <div className="absolute w-24 h-16 border-2 border-indigo-500/30 rounded-lg top-4 left-4" />
-                              <div className="absolute w-16 h-16 border-2 border-purple-500/30 rounded-full bottom-4 right-8" />
-                              <svg className="absolute inset-0 w-full h-full opacity-30" preserveAspectRatio="none">
-                                <path d="M50 50 Q 150 150 200 50 T 350 100" stroke="cyan" strokeWidth="2" fill="none" />
-                              </svg>
-                           </div>
-                        </div>
-                      </div>
-                   </div>
-                </div>
-                {/* Decorative blob behind screenshot */}
-                <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 blur-2xl -z-10 rounded-3xl opacity-50" />
-              </motion.div>
-            </div>
-          </div>
+        <section id="pricing" className="border-y border-border/80 bg-surface/45 px-5 py-22 sm:px-8">
+          <div className="mx-auto max-w-5xl"><div className="text-center"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Clear pricing</p><h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Start without a decision meeting.</h2><p className="mt-4 text-muted-foreground">The core StudyHive workspace is free while we build the next tier.</p></div><div className="mt-12 grid gap-5 md:grid-cols-2"><article className="rounded-3xl border border-border bg-surface p-8 shadow-sm"><p className="text-sm font-semibold text-muted-foreground">Free</p><p className="mt-3 text-5xl font-semibold tracking-tight">$0</p><p className="mt-3 text-sm text-muted-foreground">For study groups getting organized.</p><ul className="mt-8 space-y-3 text-sm">{['Group workspaces', 'Chat and video meetings', 'Shared notes and whiteboards', 'Calendar and scheduling'].map((item) => <li key={item} className="flex items-center gap-3"><Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />{item}</li>)}</ul><Link to="/sign-up" className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">Create your free account</Link></article><article className="relative overflow-hidden rounded-3xl border border-primary/25 bg-[#18213a] p-8 text-white shadow-xl shadow-primary/10"><div className="absolute -right-14 -top-14 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" /><p className="relative text-sm font-semibold text-cyan-300">Pro · Coming later</p><p className="relative mt-3 text-4xl font-semibold tracking-tight">More power when you need it.</p><p className="relative mt-4 text-sm leading-6 text-slate-300">Larger groups, longer meetings, and expanded collaboration controls are on the roadmap.</p><div className="relative mt-8 rounded-2xl border border-white/10 bg-white/[0.07] p-4 text-sm text-slate-300">Free accounts will continue to work when Pro launches.</div></article></div></div>
         </section>
 
-        {/* 6. How It Works */}
-        <section id="how-it-works" className="py-24">
-          <div className="container mx-auto px-6 max-w-7xl">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold mb-4">Start studying in seconds</h2>
-              <p className="text-slate-400 text-lg">A frictionless workflow designed for momentum.</p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8 relative">
-              {/* Connecting line for desktop */}
-              <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-px bg-gradient-to-r from-indigo-500/0 via-indigo-500/50 to-indigo-500/0" />
-              
-              {[
-                { step: "01", title: "Create workspace", desc: "Sign up and create a dedicated workspace for your classes or study groups." },
-                { step: "02", title: "Invite your group", desc: "Share a simple link to bring your peers into the collaborative environment." },
-                { step: "03", title: "Collaborate & succeed", desc: "Start chatting, taking shared notes, and jumping into instant video calls." }
-              ].map((item, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.2 }}
-                  className="relative z-10 flex flex-col items-center text-center"
-                >
-                  <div className="w-24 h-24 rounded-full bg-[#111113] border border-white/10 flex items-center justify-center text-2xl font-mono text-indigo-400 mb-6 shadow-xl">
-                    {item.step}
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
-                  <p className="text-slate-400">{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 7. Testimonials */}
-        <section className="py-24 bg-[#111113] border-y border-white/5">
-          <div className="container mx-auto px-6 max-w-7xl">
-            <h2 className="text-3xl md:text-5xl font-bold mb-16 text-center">Loved by top students</h2>
-            
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { quote: "StudyHive replaced 4 different apps for our engineering project team. It's incredibly fast and the shared whiteboard is a lifesaver.", author: "Sarah J.", role: "Computer Science Major" },
-                { quote: "We improved our group productivity massively. The ability to jump from a chat straight into an HD video call with synced notes is magic.", author: "Michael T.", role: "Medical Student" },
-                { quote: "Easily the best platform for remote studying. It feels like a premium startup tool but designed specifically for academic needs.", author: "Elena R.", role: "Law Student" }
-              ].map((testimonial, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-[#151518] border border-white/5 rounded-2xl p-8 hover:border-white/10 transition-all"
-                >
-                  <div className="flex gap-1 mb-6">
-                    {[1,2,3,4,5].map(star => <Star key={star} className="w-4 h-4 text-indigo-500" fill="currentColor" />)}
-                  </div>
-                  <p className="text-slate-300 text-lg leading-relaxed mb-6">"{testimonial.quote}"</p>
-                  <div>
-                    <p className="font-medium text-white">{testimonial.author}</p>
-                    <p className="text-sm text-slate-500">{testimonial.role}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 8. Pricing Preview */}
-        <section id="pricing" className="py-24">
-          <div className="container mx-auto px-6 max-w-7xl">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h2>
-              <p className="text-slate-400 text-lg">Start for free, upgrade when your team needs more power.</p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {/* Free Plan */}
-              <div className="bg-[#111113] border border-white/5 rounded-3xl p-8 flex flex-col">
-                <h3 className="text-xl font-medium text-slate-300 mb-2">Free</h3>
-                <div className="mb-6"><span className="text-4xl font-bold">$0</span><span className="text-slate-500">/forever</span></div>
-                <p className="text-slate-400 text-sm mb-8">Perfect for individual students and small study groups.</p>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {["Up to 5 group members", "Unlimited chat messages", "1 hr video limit", "Basic collaborative notes"].map((feat, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                      <CheckCircle2 className="w-4 h-4 text-slate-500" /> {feat}
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="outline" onClick={() => navigate("/sign-up")} className="w-full border-white/10 bg-transparent text-white hover:bg-white/5">Get Started</Button>
-              </div>
-
-              {/* Pro Plan */}
-              <div className="bg-gradient-to-b from-[#1A1A24] to-[#111113] border border-indigo-500/30 rounded-3xl p-8 flex flex-col relative transform md:-translate-y-4 shadow-2xl shadow-indigo-500/10">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</div>
-                <h3 className="text-xl font-medium text-indigo-400 mb-2">Pro</h3>
-                <div className="mb-6"><span className="text-4xl font-bold">$8</span><span className="text-slate-500">/mo</span></div>
-                <p className="text-slate-400 text-sm mb-8">For serious students who need limitless collaboration.</p>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {["Unlimited group members", "Unlimited HD video", "Advanced whiteboard tools", "AI smart search & summaries"].map((feat, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm text-slate-100">
-                      <CheckCircle2 className="w-4 h-4 text-indigo-400" /> {feat}
-                    </li>
-                  ))}
-                </ul>
-                <Button disabled title="Pro subscriptions are coming soon" className="w-full bg-indigo-500 text-white">Pro — Coming Soon</Button>
-              </div>
-
-              {/* Campus Plan */}
-              <div className="bg-[#111113] border border-white/5 rounded-3xl p-8 flex flex-col">
-                <h3 className="text-xl font-medium text-slate-300 mb-2">Campus</h3>
-                <div className="mb-6"><span className="text-4xl font-bold">Custom</span></div>
-                <p className="text-slate-400 text-sm mb-8">For university departments and large organizations.</p>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {["SSO integration", "Dedicated success manager", "Advanced analytics", "Custom domain"].map((feat, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                      <CheckCircle2 className="w-4 h-4 text-slate-500" /> {feat}
-                    </li>
-                  ))}
-                </ul>
-                <Button disabled title="Campus plans are coming soon" variant="outline" className="w-full border-white/10 bg-transparent text-white">Campus — Coming Soon</Button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 9. Final CTA Section */}
-        <section className="py-24 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-indigo-900/20" />
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-1/2 bg-indigo-500/20 blur-[120px] rounded-t-full pointer-events-none" />
-          
-          <div className="container mx-auto px-6 max-w-4xl relative z-10 text-center">
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-4xl md:text-6xl font-bold tracking-tight mb-6"
-            >
-              Ready to level up <br/> your study game?
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-xl text-slate-400 mb-10"
-            >
-              Join thousands of students already using StudyHive to collaborate better.
-            </motion.p>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="flex flex-col sm:flex-row justify-center gap-4"
-            >
-              <Button 
-                size="lg" 
-                className="bg-white text-black hover:bg-slate-200 rounded-full px-10 py-6 text-lg font-medium shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-transform hover:scale-105"
-                onClick={() => navigate("/sign-up")}
-              >
-                Get Started Free
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="rounded-full px-10 py-6 text-lg font-medium border-white/10 bg-transparent text-white hover:bg-white/5"
-                disabled
-                title="Demo booking is coming soon"
-              >
-                Demo Booking — Coming Soon
-              </Button>
-            </motion.div>
-          </div>
-        </section>
+        <section className="px-5 py-24 sm:px-8"><div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[#18213a] px-6 py-16 text-center text-white shadow-2xl shadow-primary/15 sm:px-12"><div className="absolute -left-20 top-0 h-72 w-72 rounded-full bg-indigo-500/25 blur-3xl" /><div className="absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" /><div className="relative"><h2 className="text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">Give your group one good place to work.</h2><p className="mx-auto mt-4 max-w-xl text-slate-300">Create a workspace in minutes, or sign in and get back to the plan.</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><Link to="/sign-up" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-7 text-sm font-semibold text-[#18213a] transition hover:-translate-y-0.5 hover:bg-slate-100">Get started free <ArrowRight className="h-4 w-4" /></Link><Link to="/sign-in" className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 bg-white/[0.07] px-7 text-sm font-semibold text-white transition hover:bg-white/10">Sign in</Link></div></div></div></section>
       </main>
 
-      {/* 10. Footer */}
-      <footer className="border-t border-white/5 bg-[#0A0A0B] pt-16 pb-8">
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-16">
-            <div className="col-span-2 lg:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                </div>
-                <span className="font-bold text-lg">StudyHive</span>
-              </div>
-              <p className="text-slate-400 text-sm max-w-xs">
-                The all-in-one collaborative workspace for the next generation of students.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-white mb-4">Product</h4>
-              <ul className="space-y-3 text-sm text-slate-400">
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-white mb-4">Company</h4>
-              <ul className="space-y-3 text-sm text-slate-400">
-                <li><span className="text-slate-600">Company pages coming soon</span></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-white mb-4">Legal</h4>
-              <ul className="space-y-3 text-sm text-slate-400">
-                <li><span className="text-slate-600">Legal pages coming soon</span></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-slate-500 text-sm">
-              © {new Date().getFullYear()} StudyHive Inc. All rights reserved.
-            </p>
-            <div className="flex gap-4">
-              {/* Social Placeholders */}
-              <div className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors" />
-              <div className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors" />
-              <div className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors" />
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Global CSS for Animations */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-      `}} />
+      <footer className="border-t border-border bg-surface/55 px-5 py-10 sm:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between"><div><Link to="/" className="flex items-center gap-2 font-semibold"><Activity className="h-5 w-5 text-primary" /> StudyHive</Link><p className="mt-2 text-sm text-muted-foreground">A calmer workspace for serious collaboration.</p></div><div className="flex flex-wrap items-center gap-5 text-sm font-medium text-muted-foreground"><a href="#features" className="hover:text-foreground">Features</a><a href="#pricing" className="hover:text-foreground">Pricing</a><Link to="/sign-in" className="hover:text-foreground">Sign in</Link><Link to="/sign-up" className="text-primary hover:text-primary/75">Create account</Link></div></div><div className="mx-auto mt-8 max-w-7xl border-t border-border pt-6 text-xs text-muted-foreground">© {new Date().getFullYear()} StudyHive. All rights reserved.</div></footer>
     </div>
   );
-};
-
-export default Index;
-
+}

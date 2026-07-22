@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useRef, useState } from "react";
 import {
   Send, Paperclip, Smile, Mic, PlusCircle,
-  Bot, AtSign, MoreHorizontal, MessageCircle, AlertCircle
+  Bot, AtSign, MessageCircle, AlertCircle, Reply, Pencil, Trash2, Copy, X
 } from "lucide-react";
 import api from "@/lib/axiosInstance";
 import { useParams } from "react-router-dom";
@@ -24,6 +24,10 @@ interface Message {
   content: string;
   createdAt: string;
   chatId: string;
+  editedAt?: string;
+  deletedAt?: string;
+  replyTo?: { _id: string; content: string; deletedAt?: string; senderName: string };
+  reactions: Array<{ emoji: string; userId: string }>;
 }
 
 // Backend returns snake_case — handle both shapes defensively
@@ -40,12 +44,22 @@ const normalizeMessage = (value: unknown): Message => {
   const createdAt = stringValue(raw.createdAt, raw.created_at) || new Date().toISOString();
   const content = stringValue(raw.content);
   const senderId = stringValue(senderObj._id, senderObj.id, raw.sender_id);
+  const replyObj = asRecord(raw.replyTo ?? raw.reply_to);
+  const replySender = asRecord(replyObj.sender);
+  const reactions = Array.isArray(raw.reactions) ? raw.reactions.map((reaction) => {
+    const item = asRecord(reaction);
+    return { emoji: stringValue(item.emoji), userId: stringValue(item.userId, item.user_id) };
+  }).filter((reaction) => reaction.emoji && reaction.userId) : [];
   return {
     _id:       stringValue(raw._id, raw.id) || `${senderId}:${createdAt}:${content}`,
     content,
     createdAt,
     // chatId: backend sends flat "chat_id" field
     chatId:    stringValue(raw.chatId, raw.chat_id, senderObj.chat_id),
+    editedAt: stringValue(raw.editedAt, raw.edited_at) || undefined,
+    deletedAt: stringValue(raw.deletedAt, raw.deleted_at) || undefined,
+    replyTo: Object.keys(replyObj).length ? { _id: stringValue(replyObj._id, replyObj.id), content: stringValue(replyObj.content), deletedAt: stringValue(replyObj.deletedAt, replyObj.deleted_at) || undefined, senderName: stringValue(replySender.username) || "Member" } : undefined,
+    reactions,
     sender: {
       _id: senderId,
       username: stringValue(senderObj.username) || "Unknown",
@@ -63,6 +77,8 @@ const Messages = () => {
   const [newMessage,      setNewMessage]      = useState("");
   const [loading,         setLoading]         = useState(false);
   const [error,           setError]           = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const messagesEndRef       = useRef<HTMLDivElement>(null);
   const currentChatIdRef     = useRef<string>("");
@@ -99,8 +115,23 @@ const Messages = () => {
       if (msg.chatId && msg.chatId !== currentChatIdRef.current) return;
       setMessages(prev => prev.some(m => m._id === msg._id) ? prev : [...prev, msg]);
     };
+    const onUpdated = (raw: unknown) => {
+      const updated = normalizeMessage(raw);
+      setMessages((current) => current.map((message) => message._id === updated._id ? updated : message));
+    };
+    const onDeleted = (raw: unknown) => {
+      const deleted = normalizeMessage(raw);
+      setMessages((current) => current.map((message) => message._id === deleted._id ? { ...message, content: "", deletedAt: deleted.deletedAt || new Date().toISOString(), reactions: [] } : message));
+    };
+    const onReactions = (payload: { messageId?: string; reactions?: Array<{ emoji: string; user_id?: string; userId?: string }> }) => {
+      if (!payload.messageId) return;
+      setMessages((current) => current.map((message) => message._id === payload.messageId ? { ...message, reactions: (payload.reactions ?? []).map((reaction) => ({ emoji: reaction.emoji, userId: reaction.userId ?? reaction.user_id ?? "" })) } : message));
+    };
     socket.on("message received", onReceived);
-    return () => { socket.off("message received", onReceived); };
+    socket.on("message updated", onUpdated);
+    socket.on("message deleted", onDeleted);
+    socket.on("message reactions", onReactions);
+    return () => { socket.off("message received", onReceived); socket.off("message updated", onUpdated); socket.off("message deleted", onDeleted); socket.off("message reactions", onReactions); };
   }, []);
 
   // ── Fetch messages on chatId change ────────────────────
@@ -128,27 +159,55 @@ const Messages = () => {
     const content = newMessage.trim();
     if (!content || !chatId) return;
 
+    if (editingId) {
+      try {
+        const { data } = await api.patch(`/messages/${editingId}`, { content });
+        const updated = normalizeMessage(data);
+        setMessages((current) => current.map((message) => message._id === editingId ? updated : message));
+        setEditingId(null); setNewMessage(""); toast.success("Message updated.");
+      } catch { toast.error("Message could not be updated."); }
+      return;
+    }
+
     const optimistic: Message = {
       _id: crypto.randomUUID(),
       content,
       chatId,
       createdAt: new Date().toISOString(),
       sender: { _id: user?._id ?? "", username: user?.username ?? "You", photo: user?.photo },
+      replyTo: replyingTo ? { _id: replyingTo._id, content: replyingTo.content, deletedAt: replyingTo.deletedAt, senderName: replyingTo.sender.username } : undefined,
+      reactions: [],
     };
 
     setMessages(prev => [...prev, optimistic]);
     setNewMessage("");
 
     try {
-      const res = await api.post("/messages", { content, chatId });
+      const res = await api.post("/messages", { content, chatId, replyToId: replyingTo?._id || null });
       const confirmed = normalizeMessage(res.data);
       setMessages(prev => prev.map(m => m._id === optimistic._id ? confirmed : m));
       socket.emit("new message", { ...confirmed, chat_id: confirmed.chatId });
+      setReplyingTo(null);
     } catch (err: unknown) {
       console.error("[Messages] send error:", err);
       setMessages(prev => prev.filter(m => m._id !== optimistic._id));
       toast.error("Message could not be sent. Please try again.");
     }
+  };
+
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    try {
+      const { data } = await api.post(`/messages/${messageId}/reactions`, { emoji });
+      setMessages((current) => current.map((message) => message._id === messageId ? { ...message, reactions: (data.reactions ?? []).map((reaction: { emoji: string; user_id?: string; userId?: string }) => ({ emoji: reaction.emoji, userId: reaction.userId ?? reaction.user_id ?? "" })) } : message));
+    } catch { toast.error("Reaction could not be updated."); }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    if (!window.confirm("Delete this message for everyone?")) return;
+    try {
+      await api.delete(`/messages/${messageId}`);
+      setMessages((current) => current.map((message) => message._id === messageId ? { ...message, content: "", deletedAt: new Date().toISOString(), reactions: [] } : message));
+    } catch { toast.error("Message could not be deleted."); }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -164,7 +223,7 @@ const Messages = () => {
 
   // ── Render ──────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-[#0B0D10] to-[#0d1017] min-h-0">
+    <div className="flex-1 flex flex-col h-full bg-transparent min-h-0">
 
       {/* ── Messages area ── */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar min-h-0">
@@ -197,11 +256,11 @@ const Messages = () => {
 
         {/* Empty */}
         {!loading && !error && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-3">
-            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-              <MessageCircle className="w-7 h-7 text-gray-600" />
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-3">
+            <div className="w-16 h-16 bg-elevated rounded-full flex items-center justify-center border border-border">
+              <MessageCircle className="w-7 h-7 text-muted-foreground" />
             </div>
-            <p className="font-medium text-gray-300">No messages yet</p>
+            <p className="font-medium text-foreground">No messages yet</p>
             <p className="text-sm">Be the first to start the conversation!</p>
           </div>
         )}
@@ -211,9 +270,9 @@ const Messages = () => {
           <div key={date}>
             {/* Date divider */}
             <div className="flex items-center gap-4 my-4">
-              <div className="flex-1 h-px bg-white/5" />
-              <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">{date}</span>
-              <div className="flex-1 h-px bg-white/5" />
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">{date}</span>
+              <div className="flex-1 h-px bg-border" />
             </div>
 
             <AnimatePresence initial={false}>
@@ -237,7 +296,7 @@ const Messages = () => {
                       {/* Avatar */}
                       {!isOwn && (
                         <div className={`w-8 h-8 shrink-0 ${isConsecutive ? "invisible" : ""}`}>
-                          <Avatar className="w-full h-full border border-white/10">
+                          <Avatar className="w-full h-full border border-border">
                             <AvatarImage src={msg.sender.photo ?? ""} />
                             <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-xs text-white">
                               {msg.sender.username.charAt(0).toUpperCase()}
@@ -250,8 +309,8 @@ const Messages = () => {
                         {/* Sender + time */}
                         {!isConsecutive && (
                           <div className={`flex items-baseline gap-2 mb-1 ${isOwn ? "flex-row-reverse" : ""}`}>
-                            <span className="text-[13px] font-semibold text-gray-200">{msg.sender.username}</span>
-                            <span className="text-[11px] text-gray-500">
+                            <span className="text-[13px] font-semibold text-foreground">{msg.sender.username}</span>
+                            <span className="text-[11px] text-muted-foreground">
                               {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
@@ -260,26 +319,23 @@ const Messages = () => {
                         {/* Bubble */}
                         <div className="relative group/bubble">
                           {/* Hover actions */}
-                          {isOwn && (
-                            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity flex gap-1">
-                              <Button disabled title="Reactions coming soon" variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5"><Smile className="w-3 h-3" /></Button>
-                              <Button disabled title="Message actions coming soon" variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5"><MoreHorizontal className="w-3 h-3" /></Button>
-                            </div>
-                          )}
-                          {!isOwn && (
-                            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity flex gap-1">
-                              <Button disabled title="Reactions coming soon" variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5"><Smile className="w-3 h-3" /></Button>
-                              <Button disabled title="Message actions coming soon" variant="ghost" size="icon" className="w-6 h-6 bg-[#1A1D24] rounded border border-white/5"><MoreHorizontal className="w-3 h-3" /></Button>
-                            </div>
-                          )}
+                          {!msg.deletedAt && <div className={`absolute ${isOwn ? "right-full mr-2" : "left-full ml-2"} top-1/2 z-10 flex -translate-y-1/2 gap-0.5 rounded-lg border border-border bg-surface p-1 text-foreground opacity-0 shadow-lg transition-opacity group-hover/bubble:opacity-100`}>
+                            <button title="Reply" onClick={() => { setReplyingTo(msg); setEditingId(null); }} className="grid h-7 w-7 place-items-center rounded-md hover:bg-elevated"><Reply className="h-3.5 w-3.5" /></button>
+                            <button title="React with thumbs up" onClick={() => void toggleReaction(msg._id, "👍")} className="grid h-7 w-7 place-items-center rounded-md hover:bg-elevated"><Smile className="h-3.5 w-3.5" /></button>
+                            <button title="Copy message" onClick={async () => { await navigator.clipboard.writeText(msg.content); toast.success("Message copied."); }} className="grid h-7 w-7 place-items-center rounded-md hover:bg-elevated"><Copy className="h-3.5 w-3.5" /></button>
+                            {isOwn && <><button title="Edit message" onClick={() => { setEditingId(msg._id); setReplyingTo(null); setNewMessage(msg.content); }} className="grid h-7 w-7 place-items-center rounded-md hover:bg-elevated"><Pencil className="h-3.5 w-3.5" /></button><button title="Delete message" onClick={() => void deleteMessage(msg._id)} className="grid h-7 w-7 place-items-center rounded-md text-red-500 hover:bg-red-500/10"><Trash2 className="h-3.5 w-3.5" /></button></>}
+                          </div>}
 
-                          <div className={`px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed break-words ${
+                          <div className={`min-w-28 px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed break-words ${
                             isOwn
                               ? "bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-tr-sm"
-                              : "bg-[#1C1F26] text-gray-100 rounded-tl-sm border border-white/5"
+                              : "bg-surface text-foreground rounded-tl-sm border border-border shadow-sm"
                           }`}>
-                            {msg.content}
+                            {msg.replyTo && <div className={`mb-2 rounded-lg border-l-2 px-2 py-1.5 text-xs ${isOwn ? "border-white/60 bg-black/10 text-indigo-50" : "border-primary bg-elevated text-muted-foreground"}`}><p className="font-semibold">{msg.replyTo.senderName}</p><p className="mt-0.5 max-w-64 truncate">{msg.replyTo.deletedAt ? "Deleted message" : msg.replyTo.content}</p></div>}
+                            {msg.deletedAt ? <span className={`italic ${isOwn ? "text-white/70" : "text-muted-foreground"}`}>Message deleted</span> : msg.content}
+                            {msg.editedAt && !msg.deletedAt && <span className={`ml-2 text-[10px] ${isOwn ? "text-white/65" : "text-muted-foreground"}`}>(edited)</span>}
                           </div>
+                          {msg.reactions.length > 0 && <div className={`mt-1 flex flex-wrap gap-1 ${isOwn ? "justify-end" : "justify-start"}`}>{Object.entries(msg.reactions.reduce<Record<string, string[]>>((acc, reaction) => { (acc[reaction.emoji] ??= []).push(reaction.userId); return acc; }, {})).map(([emoji, users]) => <button key={emoji} onClick={() => void toggleReaction(msg._id, emoji)} className={`rounded-full border px-2 py-0.5 text-xs shadow-sm transition ${users.includes(user?._id || "") ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-surface text-foreground hover:bg-elevated"}`}>{emoji} {users.length}</button>)}</div>}
                         </div>
                       </div>
 
@@ -297,20 +353,21 @@ const Messages = () => {
       {/* ── Composer ── */}
       <div className="shrink-0 p-4">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-[#15181E] border border-white/10 rounded-2xl shadow-2xl overflow-hidden focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
+          <div className="bg-surface/90 backdrop-blur-xl border border-border rounded-2xl shadow-xl shadow-black/10 overflow-hidden focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 transition-all">
+            {(replyingTo || editingId) && <div className="flex items-center justify-between gap-3 border-b border-border bg-primary/6 px-4 py-2.5 text-sm"><div className="min-w-0"><p className="font-semibold text-primary">{editingId ? "Editing message" : `Replying to ${replyingTo?.sender.username}`}</p>{replyingTo && <p className="truncate text-xs text-muted-foreground">{replyingTo.content}</p>}</div><button onClick={() => { setReplyingTo(null); if (editingId) setNewMessage(""); setEditingId(null); }} className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground hover:bg-elevated hover:text-foreground"><X className="h-4 w-4" /></button></div>}
             <div className="flex items-end px-2 py-2 gap-1">
               <Button disabled title="Attachments coming soon" variant="ghost" size="icon" className="w-9 h-9 rounded-xl shrink-0">
                 <PlusCircle className="w-5 h-5" />
               </Button>
 
               <textarea
-                placeholder="Message workspace…"
+                placeholder={editingId ? "Edit your message…" : replyingTo ? "Write a reply…" : "Message workspace…"}
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={!chatId || loading}
                 rows={1}
-                className="flex-1 min-h-[44px] max-h-32 bg-transparent text-white placeholder-gray-500 px-2 py-3 text-[15px] resize-none outline-none disabled:opacity-50 leading-relaxed custom-scrollbar"
+                className="flex-1 min-h-[44px] max-h-32 bg-transparent text-foreground placeholder:text-muted-foreground px-2 py-3 text-[15px] resize-none outline-none disabled:opacity-50 leading-relaxed custom-scrollbar"
                 onInput={e => {
                   const t = e.target as HTMLTextAreaElement;
                   t.style.height = "auto";
@@ -321,14 +378,14 @@ const Messages = () => {
               <div className="flex items-center gap-1 shrink-0">
                 <Button disabled title="Mentions coming soon" variant="ghost" size="icon" className="w-9 h-9 rounded-xl"><AtSign className="w-5 h-5" /></Button>
                 <Button disabled title="Emoji picker coming soon" variant="ghost" size="icon" className="w-9 h-9 rounded-xl"><Smile className="w-5 h-5" /></Button>
-                <div className="w-px h-5 bg-white/10 mx-1" />
+                <div className="w-px h-5 bg-border mx-1" />
                 <Button
                   onClick={handleSend}
                   disabled={!newMessage.trim() || !chatId || loading}
                   className={`w-9 h-9 rounded-xl transition-all ${
                     newMessage.trim()
                       ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30"
-                      : "bg-white/5 text-gray-500"
+                      : "bg-elevated text-muted-foreground"
                   }`}
                 >
                   <Send className="w-4 h-4" />
@@ -337,20 +394,20 @@ const Messages = () => {
             </div>
 
             {/* Footer bar */}
-            <div className="bg-black/20 px-4 py-1.5 border-t border-white/5 flex items-center justify-between">
+            <div className="bg-elevated/65 px-4 py-1.5 border-t border-border flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <button disabled title="AI assistant coming soon" className="flex items-center text-xs text-gray-600 gap-1 cursor-not-allowed">
+                <button disabled title="AI assistant coming soon" className="flex items-center text-xs text-muted-foreground gap-1 cursor-not-allowed">
                   <Bot className="w-3.5 h-3.5" /> Ask AI
                 </button>
-                <button disabled title="Attachments coming soon" className="flex items-center text-xs text-gray-600 gap-1 cursor-not-allowed">
+                <button disabled title="Attachments coming soon" className="flex items-center text-xs text-muted-foreground gap-1 cursor-not-allowed">
                   <Paperclip className="w-3.5 h-3.5" /> Attach
                 </button>
-                <button disabled title="Voice messages coming soon" className="flex items-center text-xs text-gray-600 gap-1 cursor-not-allowed">
+                <button disabled title="Voice messages coming soon" className="flex items-center text-xs text-muted-foreground gap-1 cursor-not-allowed">
                   <Mic className="w-3.5 h-3.5" /> Voice
                 </button>
               </div>
-              <span className="text-[10px] text-gray-600">
-                <strong className="text-gray-400">Shift+Enter</strong> new line
+              <span className="text-[10px] text-muted-foreground">
+                <strong className="text-foreground/70">Shift+Enter</strong> new line
               </span>
             </div>
           </div>

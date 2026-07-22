@@ -182,6 +182,14 @@ const MeetingPage = () => {
         await acquired.session.ready;
         if (cancelled) return;
 
+        // Mark the room live only after the creator has successfully joined.
+        // This keeps scheduled meetings out of the "active" state when Stream
+        // initialization fails or a participant merely opens the page.
+        if (mayManage && dbId) {
+          await api.patch(`/meet/${dbId}/status`, { status: "active" }, { signal: controller.signal });
+        }
+        if (cancelled) return;
+
         setClient(acquired.session.client);
         setCall(acquired.session.call);
         setMeetingDbId(dbId ?? null);

@@ -73,24 +73,31 @@ export default function HomePage() {
 
   // Real analytics data
   const stats = [
-    { label: "Active Groups", value: groups.length.toString(), icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
-    { label: "Messages Sent", value: userStats.messagesSent.toString(), icon: MessageCircle, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-    { label: "Whiteboards", value: userStats.whiteboardsCreated.toString(), icon: Activity, color: "text-amber-400", bg: "bg-amber-400/10" },
-    { label: "Notes Created", value: userStats.notesCreated.toString(), icon: FileText, color: "text-purple-400", bg: "bg-purple-400/10" },
+    { label: "Active Groups", value: groups.length.toString(), icon: Users, color: "text-blue-600 dark:text-blue-300", bg: "bg-gradient-to-br from-blue-500/20 to-indigo-500/10", gradient: "from-blue-500/13 via-surface to-indigo-500/8" },
+    { label: "Messages Sent", value: userStats.messagesSent.toString(), icon: MessageCircle, color: "text-emerald-600 dark:text-emerald-300", bg: "bg-gradient-to-br from-emerald-500/20 to-cyan-500/10", gradient: "from-emerald-500/12 via-surface to-cyan-500/8" },
+    { label: "Whiteboards", value: userStats.whiteboardsCreated.toString(), icon: Activity, color: "text-amber-600 dark:text-amber-300", bg: "bg-gradient-to-br from-amber-500/20 to-orange-500/10", gradient: "from-amber-500/12 via-surface to-orange-500/7" },
+    { label: "Notes Created", value: userStats.notesCreated.toString(), icon: FileText, color: "text-purple-600 dark:text-purple-300", bg: "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/10", gradient: "from-purple-500/12 via-surface to-fuchsia-500/8" },
   ];
 
   return (
-    <div className="min-h-full p-8 max-w-[1600px] mx-auto">
+    <div className="relative isolate min-h-full max-w-[1600px] mx-auto overflow-hidden p-5 sm:p-8">
       <Toaster richColors />
+      <div className="pointer-events-none absolute -left-36 top-12 -z-10 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -right-32 top-72 -z-10 h-96 w-96 rounded-full bg-cyan-400/9 blur-3xl" />
 
       {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+      <div className="relative mb-8 flex flex-col justify-between gap-6 overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-indigo-500/14 via-surface/90 to-cyan-400/10 p-7 shadow-[0_24px_65px_-38px_var(--shadow-soft)] md:flex-row md:items-center sm:p-9">
+        <div className="pointer-events-none absolute -right-14 -top-24 h-64 w-64 rounded-full bg-primary/13 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 h-32 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <h1 className="text-3xl font-semibold tracking-tight mb-2">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-surface/55 px-3 py-1 text-xs font-semibold text-primary backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" /> Your workspace is ready
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight mb-2 sm:text-4xl">
             Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {user?.username || "Student"}
           </h1>
           <p className="text-muted-foreground">Here is what's happening in your workspace today.</p>
@@ -103,7 +110,7 @@ export default function HomePage() {
         >
           <Button 
             onClick={() => setShowModal(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 rounded-xl gap-2 h-11 px-6"
+          className="relative bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 text-primary-foreground shadow-xl shadow-primary/25 rounded-xl gap-2 h-11 px-6 transition hover:-translate-y-0.5"
           >
             <Plus className="w-4 h-4" />
             New Workspace
@@ -119,10 +126,11 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: i * 0.1 }}
-            className="glass-card p-6"
+            className={clsx("group relative overflow-hidden rounded-2xl border border-border/90 bg-gradient-to-br p-6 shadow-[0_16px_38px_-28px_var(--shadow-soft)] transition duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_22px_48px_-28px_var(--shadow-soft)]", stat.gradient)}
           >
+            <div className={clsx("pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl opacity-40", stat.bg)} />
             <div className="flex items-center gap-4">
-              <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", stat.bg)}>
+              <div className={clsx("relative w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-white/35 shadow-sm", stat.bg)}>
                 <stat.icon className={clsx("w-6 h-6", stat.color)} />
               </div>
               <div>
@@ -176,11 +184,12 @@ export default function HomePage() {
                     transition={{ duration: 0.3, delay: 0.1 * index }}
                     key={group._id}
                     onClick={() => handleGroupClick(group._id)}
-                    className="glass-card p-5 cursor-pointer group"
+                    className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-indigo-500/7 p-5 shadow-[0_16px_38px_-28px_var(--shadow-soft)] transition duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_24px_54px_-30px_var(--shadow-soft)]"
                   >
+                    <div className="pointer-events-none absolute -right-14 -top-14 h-40 w-40 rounded-full bg-gradient-to-br from-indigo-500/13 to-cyan-400/8 blur-2xl transition-transform duration-500 group-hover:scale-125" />
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-indigo-500/20 group-hover:scale-105 transition-transform">
-                        <MessageCircle className="w-6 h-6 text-indigo-400" />
+                      <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/22 to-cyan-400/12 flex items-center justify-center border border-indigo-500/20 shadow-sm group-hover:scale-105 transition-transform">
+                        <MessageCircle className="w-6 h-6 text-indigo-600 dark:text-indigo-300" />
                       </div>
                       <div className="flex items-center gap-1.5 bg-surface border border-border px-2.5 py-1 rounded-full text-xs font-medium">
                         <Users className="w-3.5 h-3.5 text-muted-foreground" />
@@ -219,10 +228,11 @@ export default function HomePage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="glass-panel p-6"
+            className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-cyan-500/8 p-6 shadow-[0_20px_48px_-30px_var(--shadow-soft)]"
           >
+            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-gradient-to-br from-indigo-500/14 to-cyan-400/12 blur-3xl" />
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Video className="w-5 h-5 text-indigo-400" />
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-cyan-400/10 text-indigo-600 dark:text-indigo-300"><Video className="w-4 h-4" /></span>
               Meetings
             </h3>
             
@@ -237,7 +247,7 @@ export default function HomePage() {
                   <div
                     key={group._id}
                     onClick={() => navigate(`/chat/${group._id}?tab=meetings`)}
-                    className="p-3 rounded-xl bg-elevated border border-border hover:border-primary/30 transition-colors cursor-pointer flex items-center gap-3 group"
+                    className="relative p-3 rounded-xl bg-gradient-to-r from-elevated to-indigo-500/5 border border-border hover:border-primary/30 transition-all hover:-translate-y-0.5 cursor-pointer flex items-center gap-3 group"
                   >
                     <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/20">
                       <Video className="w-4 h-4 text-indigo-400" />

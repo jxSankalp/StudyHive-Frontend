@@ -11,6 +11,8 @@ export interface Note {
   chat: string;
   createdAt: string;
   updatedAt: string;
+  isPinned: boolean;
+  tags: string[];
 }
 
 export type Meeting = {
@@ -23,8 +25,49 @@ export type Meeting = {
   status: "active" | "scheduled" | "ended";
   scheduledTime: string;
   duration: string;
+  durationMinutes?: number;
+  description: string;
+  scheduledAt: string;
   canManage?: boolean;
 };
+
+export type WorkspaceTask = {
+  id: string;
+  chatId: string;
+  title: string;
+  description: string;
+  status: "todo" | "in_progress" | "done";
+  priority: "low" | "medium" | "high";
+  dueAt: string | null;
+  assigneeId: string | null;
+  createdById: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assignee: { id: string; username: string; email?: string; photo?: string | null } | null;
+  createdBy: { id: string; username: string; email?: string; photo?: string | null } | null;
+};
+
+export type CalendarEventColor = "indigo" | "emerald" | "amber" | "rose" | "sky" | "violet";
+
+export interface CalendarEvent {
+  id: string;
+  chatId: string;
+  title: string;
+  description: string;
+  location: string;
+  startsAt: string;
+  endsAt: string;
+  allDay: boolean;
+  color: CalendarEventColor;
+  meetingId: string | null;
+  workspace: { id: string; name: string };
+  meeting: { id: string; callId: string; name: string; status: string } | null;
+  createdById: string | null;
+  canManage: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type Whiteboard = {
   _id: string;
@@ -70,6 +113,8 @@ export interface ApiProfile {
 
 export interface ApiChatMember {
   user_id: string;
+  role?: "owner" | "admin" | "member";
+  joined_at?: string;
   profiles: ApiProfile | null;
 }
 

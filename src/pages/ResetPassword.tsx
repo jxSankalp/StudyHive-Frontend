@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -41,27 +42,26 @@ export default function ResetPassword() {
   };
 
   if (checkingSession) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]"><Loader2 className="w-5 h-5 text-white animate-spin" /></div>;
+    return <div className="workspace-canvas min-h-screen flex items-center justify-center"><Loader2 className="w-5 h-5 text-primary animate-spin" /></div>;
   }
 
   if (!hasRecoverySession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4 text-gray-100">
-        <div className="w-full max-w-sm text-center bg-[#121212] border border-white/10 rounded-xl p-6">
+      <AuthShell title="Reset link unavailable" description="This recovery link has expired or was already used.">
+        <div className="text-center">
           <h1 className="text-xl font-semibold">Reset link unavailable</h1>
-          <p className="text-sm text-gray-400 mt-2 mb-5">Request a new password reset link from the sign-in page.</p>
-          <Link to="/sign-in" className="inline-flex h-10 items-center justify-center px-4 bg-white text-black rounded-md">Return to sign in</Link>
+          <p className="text-sm text-muted-foreground mt-2 mb-5">Request a new password reset link from the sign-in page.</p>
+          <Link to="/sign-in" className="inline-flex h-12 w-full items-center justify-center px-4 bg-primary text-primary-foreground rounded-xl font-semibold">Return to sign in</Link>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4 text-gray-100">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 bg-[#121212] border border-white/10 rounded-xl p-6">
+    <AuthShell title="Choose a new password" description="Use at least 8 characters and keep it unique to StudyHive.">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <h1 className="text-xl font-semibold text-white">Choose a new password</h1>
-          <p className="text-sm text-gray-400 mt-1">Use at least 8 characters.</p>
+          <p className="text-sm text-muted-foreground">Enter and confirm your new password.</p>
         </div>
         <input
           type="password"
@@ -71,7 +71,7 @@ export default function ResetPassword() {
           autoComplete="new-password"
           required
           minLength={8}
-          className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-md"
+          className="auth-input"
         />
         <input
           type="password"
@@ -81,12 +81,12 @@ export default function ResetPassword() {
           autoComplete="new-password"
           required
           minLength={8}
-          className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-md"
+          className="auth-input"
         />
-        <button disabled={loading} className="w-full h-10 flex items-center justify-center bg-white text-black rounded-md disabled:opacity-50">
+        <button disabled={loading} className="w-full h-12 flex items-center justify-center bg-primary text-primary-foreground rounded-xl font-semibold shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90 disabled:opacity-50">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update password"}
         </button>
       </form>
-    </div>
+    </AuthShell>
   );
 }

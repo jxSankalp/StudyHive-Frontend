@@ -9,7 +9,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 const savedTheme = localStorage.getItem("studyhive-theme");
 const initialTheme = savedTheme === "light" || savedTheme === "dark"
   ? savedTheme
-  : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  : "light";
 document.documentElement.classList.toggle("dark", initialTheme === "dark");
 document.documentElement.style.colorScheme = initialTheme;
 

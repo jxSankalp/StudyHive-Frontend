@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { Video, Users, Clock, Calendar, Loader2 } from "lucide-react";
+import { Video, Users, Clock, Calendar, Loader2, FileText } from "lucide-react";
 import type { Meeting } from "@/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -12,9 +12,9 @@ type MeetingProps = {
 };
 
 const STATUS_COLORS: Record<Meeting["status"], string> = {
-  active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  scheduled: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  ended: "bg-gray-600/20 text-gray-400 border-gray-600/30",
+  active: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-300",
+  scheduled: "bg-amber-500/15 text-amber-800 border-amber-500/30 dark:text-amber-300",
+  ended: "bg-muted text-muted-foreground border-border",
 };
 
 const STATUS_DOT: Record<Meeting["status"], string> = {
@@ -33,6 +33,8 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
       </div>
     );
   }
+  const scheduledDate = meeting.scheduledAt ? new Date(meeting.scheduledAt) : null;
+  const canJoin = meeting.status === "active" || (meeting.status === "scheduled" && (!scheduledDate || scheduledDate.getTime() <= Date.now() + 15 * 60_000));
 
   const handleMarkEnded = async () => {
     if (!meeting.meetingDbId) {
@@ -80,7 +82,7 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {meeting.status !== "ended" && (
+            {meeting.status !== "ended" && canJoin && (
               <Link to={`/meeting/${meeting.id}`}>
                 <Button className="bg-emerald-600 hover:bg-emerald-700 gap-2">
                   <Video className="w-4 h-4" />
@@ -88,6 +90,7 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
                 </Button>
               </Link>
             )}
+            {meeting.status === "scheduled" && !canJoin && <Button disabled variant="outline" className="gap-2"><Clock className="h-4 w-4" /> Available 15 min before</Button>}
             {meeting.status === "active" && meeting.canManage && (
               <Button
                 variant="outline"
@@ -144,7 +147,7 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Scheduled Time</p>
                 <p className="text-lg font-semibold text-foreground">
-                  {meeting.scheduledTime}
+                  {scheduledDate ? scheduledDate.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : meeting.scheduledTime}
                 </p>
               </div>
             </div>
@@ -161,6 +164,7 @@ const Meetings = ({ meeting, onStatusChange }: MeetingProps) => {
               </div>
             </div>
           </div>
+          {meeting.description && <div className="mt-8 border-t border-border pt-6"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-500/12 text-sky-700 dark:text-sky-300"><FileText className="h-5 w-5" /></span><div><p className="text-xs text-muted-foreground">Description</p><p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-foreground">{meeting.description}</p></div></div></div>}
         </div>
 
         {/* ── Join CTA (when active) ───────────────────────────── */}

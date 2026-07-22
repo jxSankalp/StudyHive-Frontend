@@ -23,7 +23,8 @@ import {
   ChevronRight,
   ChevronDown,
   Moon,
-  Sun
+  Sun,
+  Pin
 } from "lucide-react";
 import WhiteboardComponent from '@/components/chat/Whiteboards';
 import CreateWhiteboardModal from '@/components/CreateWhiteBoardModal';
@@ -43,8 +44,16 @@ import api from "@/lib/axiosInstance";
 import { useAuth } from "@/context/AuthContext";
 import { socket } from "@/lib/socket";
 import { useTheme } from "@/context/theme";
+import CalendarPage from "@/pages/CalendarPage";
+import Tasks from "@/components/chat/Tasks";
+import { NotificationBell } from "@/components/NotificationBell";
 
 type TabType = "chat" | "notes" | "meetings" | "whiteboards" | "files" | "tasks" | "calendar";
+
+const noteExcerpt = (content: string) => {
+  if (!content.includes("<")) return content;
+  return new DOMParser().parseFromString(content, "text/html").body.textContent ?? "";
+};
 
 export default function WorkspacePage() {
   const navigate = useNavigate();
@@ -58,6 +67,7 @@ export default function WorkspacePage() {
   const [activeTab, setActiveTab] = useState<TabType>(tabParam && validTabs.includes(tabParam) ? tabParam : "chat");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [noteSort, setNoteSort] = useState<"updated" | "created" | "title">("updated");
   
   // Modals
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -74,8 +84,9 @@ export default function WorkspacePage() {
     totalMembers: 0,
     totalOnline: 0,
     canManage: false,
+    role: "member" as "owner" | "admin" | "member",
   });
-  const [members, setMembers] = useState<Array<{ id: string; username: string; photo?: string }>>([]);
+  const [members, setMembers] = useState<Array<{ id: string; username: string; email?: string; photo?: string; role?: "owner" | "admin" | "member" }>>([]);
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
@@ -128,6 +139,7 @@ export default function WorkspacePage() {
         totalMembers: Number(data.totalMembers) || 0,
         totalOnline: Number(data.totalOnline) || 0,
         canManage: data.canManage === true,
+        role: data.role === "owner" || data.role === "admin" ? data.role : "member",
       });
     } catch (error) {
       console.error("Failed to fetch chat stats:", error);
@@ -144,7 +156,9 @@ export default function WorkspacePage() {
           .map((m) => ({
             id: m.profiles?.id || m.user_id,
             username: m.profiles?.username || "Member",
+            email: m.profiles?.email,
             photo: m.profiles?.photo ?? undefined,
+            role: m.role,
           }))
           .filter((m) => m.id);
         // Deduplicate by id
@@ -181,6 +195,16 @@ export default function WorkspacePage() {
     return () => { socket.off("realtime:access-revoked", handleAccessRevoked); };
   }, [chatId, navigate]);
 
+  useEffect(() => {
+    const handleNotification = (notification: { title?: string; body?: string; chatId?: string }) => {
+      if (notification.chatId && notification.chatId !== chatId) return;
+      toast.info(notification.title || "New notification", { description: notification.body || undefined });
+      if (notification.title?.toLowerCase().includes("meeting")) void fetchData("meetings");
+    };
+    socket.on("notification:new", handleNotification);
+    return () => { socket.off("notification:new", handleNotification); };
+  }, [chatId, fetchData]);
+
   const handleCreateNew = (type: TabType) => {
     if (!chatId) {
       toast.error("Open a valid workspace before creating items.");
@@ -195,7 +219,17 @@ export default function WorkspacePage() {
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   // Filters
-  const filteredNotes = allNotesData.filter((n) => !normalizedQuery || n.name?.toLowerCase().includes(normalizedQuery));
+  const filteredNotes = allNotesData.filter((note) => !normalizedQuery ||
+    note.name?.toLowerCase().includes(normalizedQuery) ||
+    note.content?.toLowerCase().includes(normalizedQuery) ||
+    note.tags?.some((tag) => tag.toLowerCase().includes(normalizedQuery))
+  );
+  const displayedNotes = [...filteredNotes].sort((a, b) => {
+    if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+    if (noteSort === "title") return a.name.localeCompare(b.name);
+    if (noteSort === "created") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
   const filteredMeetings = allMeetData.filter((m) => !normalizedQuery || m.name?.toLowerCase().includes(normalizedQuery));
   const filteredWhiteboards = allWhiteboardsData.filter((w) => !normalizedQuery || w.title?.toLowerCase().includes(normalizedQuery));
 
@@ -282,13 +316,19 @@ export default function WorkspacePage() {
       content?: string;
       status?: Meeting["status"];
       createdAt?: string;
+      updatedAt?: string;
+      isPinned?: boolean;
+      tags?: string[];
     }> = [];
     if (activeTab === "notes") {
-      listData = filteredNotes.map((note) => ({
+      listData = displayedNotes.map((note) => ({
         id: note._id,
         name: note.name,
-        content: note.content,
+        content: noteExcerpt(note.content),
         createdAt: note.createdAt,
+        updatedAt: note.updatedAt,
+        isPinned: note.isPinned,
+        tags: note.tags,
       }));
     }
     if (activeTab === "meetings") {
@@ -321,6 +361,16 @@ export default function WorkspacePage() {
               className="pl-9 bg-elevated border-border text-foreground placeholder:text-muted-foreground rounded-xl h-10 focus-visible:ring-1 focus-visible:ring-primary/50"
             />
           </div>
+          {activeTab === "notes" && (
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <span className="text-xs font-medium text-muted-foreground">{displayedNotes.length} {displayedNotes.length === 1 ? "note" : "notes"}</span>
+              <select value={noteSort} onChange={(event) => setNoteSort(event.target.value as typeof noteSort)} className="h-8 rounded-lg border border-border bg-background px-2 text-xs font-medium text-foreground">
+                <option value="updated">Recently updated</option>
+                <option value="created">Newest created</option>
+                <option value="title">Title A–Z</option>
+              </select>
+            </div>
+          )}
           <Button
             onClick={() => handleCreateNew(activeTab)}
             className="w-full bg-elevated hover:bg-muted text-foreground border border-border rounded-xl transition-all"
@@ -345,17 +395,19 @@ export default function WorkspacePage() {
                     : "bg-elevated/60 border-transparent hover:border-border hover:bg-elevated"
                 }`}
               >
-                <h3 className={`font-medium truncate mb-1 ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                  {item.name}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className={`min-w-0 flex-1 truncate font-medium mb-1 ${isSelected ? 'text-primary' : 'text-foreground'}`}>{item.name}</h3>
+                  {item.isPinned && <Pin className="h-3.5 w-3.5 shrink-0 fill-primary/15 text-primary" />}
+                </div>
                 {item.content && <p className="text-sm text-gray-500 line-clamp-1">{item.content}</p>}
+                {item.tags && item.tags.length > 0 && <div className="mt-2 flex gap-1 overflow-hidden">{item.tags.slice(0, 3).map((tag) => <span key={tag} className="max-w-20 truncate rounded-full bg-primary/8 px-2 py-0.5 text-[10px] font-semibold text-primary">#{tag}</span>)}</div>}
                 <div className="flex justify-between items-center mt-3 text-xs text-gray-500">
                   {item.status && (
                     <span className={`px-2 py-0.5 rounded-full ${item.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-white/10'}`}>
                       {item.status}
                     </span>
                   )}
-                  {item.createdAt && <span>{format(new Date(item.createdAt), "MMM d")}</span>}
+                  {(item.updatedAt || item.createdAt) && <span>{item.updatedAt ? `Edited ${format(new Date(item.updatedAt), "MMM d")}` : format(new Date(item.createdAt!), "MMM d")}</span>}
                 </div>
               </div>
             );
@@ -374,7 +426,7 @@ export default function WorkspacePage() {
     <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 bg-surface/90 backdrop-blur-xl border-b border-border sticky top-0 z-10">
       <div className="flex items-center space-x-4">
         {sidebarCollapsed && (
-          <Button variant="ghost" size="icon" onClick={() => setSidebarCollapsed(false)} className="mr-2 text-gray-400 hover:text-white">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarCollapsed(false)} className="mr-2 text-muted-foreground hover:bg-muted hover:text-foreground">
             <LayoutDashboard className="w-5 h-5" />
           </Button>
         )}
@@ -385,10 +437,10 @@ export default function WorkspacePage() {
           <div>
             <h1 className="text-lg font-bold text-foreground leading-tight flex items-center space-x-2">
               <span>{activeTab === "chat" ? workspaceStats.chatName : activeTab}</span>
-              <ChevronDown className="w-4 h-4 text-gray-500 cursor-pointer hover:text-gray-300" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" />
             </h1>
             {activeTab === "chat" && (
-              <div className="flex items-center text-xs text-gray-400 space-x-3 mt-0.5">
+              <div className="flex items-center text-xs text-muted-foreground space-x-3 mt-0.5">
                 <span className="flex items-center"><Users className="w-3 h-3 mr-1"/> {workspaceStats.totalMembers}</span>
                 <span className="flex items-center text-green-400"><div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse"></div> {workspaceStats.totalOnline} Online</span>
               </div>
@@ -398,6 +450,7 @@ export default function WorkspacePage() {
       </div>
 
       <div className="flex items-center space-x-2">
+        <NotificationBell />
         <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground hover:text-foreground" title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
           {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </Button>
@@ -406,7 +459,7 @@ export default function WorkspacePage() {
             <>
               <Button
                 variant="ghost" size="sm"
-                className="text-gray-400 hover:text-white bg-white/5 border border-white/5 rounded-lg h-9 px-3"
+                className="rounded-lg border border-border bg-elevated px-3 text-foreground shadow-sm hover:bg-muted hover:text-foreground h-9"
                 onClick={() => setShowMeetingModal(true)}
                 title="Start a video meeting"
               >
@@ -418,7 +471,7 @@ export default function WorkspacePage() {
           {workspaceStats.canManage && (
             <Button
               variant="ghost" size="icon"
-              className="text-gray-400 hover:text-white"
+              className="text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={() => setShowGroupOptions(v => !v)}
               title="Add members / Rename group"
             >
@@ -432,7 +485,7 @@ export default function WorkspacePage() {
             variant="ghost" 
             size="icon" 
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            className={`transition-colors ${rightPanelOpen ? 'bg-primary/20 text-primary hover:bg-primary/30 hover:text-primary' : 'text-gray-400 hover:text-white'}`}
+            className={`transition-colors ${rightPanelOpen ? 'bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
           >
             {rightPanelOpen ? <PanelRightClose className="w-5 h-5" /> : <PanelRightOpen className="w-5 h-5" />}
           </Button>
@@ -456,7 +509,7 @@ export default function WorkspacePage() {
           {/* Real Members */}
           <div>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-medium text-gray-400 flex items-center">
+              <h3 className="text-sm font-medium text-muted-foreground flex items-center">
                 <Users className="w-4 h-4 mr-2" />
                 Members ({workspaceStats.totalMembers})
               </h3>
@@ -472,18 +525,19 @@ export default function WorkspacePage() {
             ) : (
               <div className="space-y-2">
                 {members.map(m => (
-                  <div key={m.id} className="flex items-center space-x-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+                  <div key={m.id} className="flex items-center space-x-3 p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer group">
                     <div className="relative shrink-0">
-                      <Avatar className="w-8 h-8 border border-white/10">
+                      <Avatar className="w-8 h-8 border border-border">
                         <AvatarImage src={m.photo || ""} />
                         <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-xs text-white">
                           {m.username.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       {/* Online indicator - green if user is in online count */}
-                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#13151A] bg-gray-600"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface bg-muted-foreground"></div>
                     </div>
-                    <span className="text-sm text-gray-300 group-hover:text-white truncate flex-1">{m.username}</span>
+                    <span className="text-sm text-foreground/80 group-hover:text-foreground truncate flex-1">{m.username}</span>
+                    {m.role && m.role !== "member" && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold capitalize text-primary">{m.role}</span>}
                     {m.id === user?._id && (
                       <span className="text-[10px] text-indigo-400 font-semibold">You</span>
                     )}
@@ -498,7 +552,7 @@ export default function WorkspacePage() {
           {/* Real Meetings */}
           <div>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-medium text-gray-400 flex items-center">
+              <h3 className="text-sm font-medium text-muted-foreground flex items-center">
                 <Video className="w-4 h-4 mr-2" />
                 {upcomingMeetings.length > 0 ? "Meetings" : "No Active Meetings"}
               </h3>
@@ -510,9 +564,9 @@ export default function WorkspacePage() {
               </button>
             </div>
             {upcomingMeetings.length === 0 ? (
-              <div className="text-center py-6 rounded-xl border border-dashed border-white/10">
-                <Video className="w-6 h-6 text-gray-600 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No active or scheduled meetings</p>
+              <div className="text-center py-6 rounded-xl border border-dashed border-border bg-elevated/40">
+                <Video className="w-6 h-6 text-muted-foreground/60 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">No active or scheduled meetings</p>
                 <button
                   onClick={() => setShowMeetingModal(true)}
                   className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
@@ -522,7 +576,10 @@ export default function WorkspacePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {upcomingMeetings.map(meeting => (
+                {upcomingMeetings.map((meeting) => {
+                  const meetingTime = meeting.scheduledAt ? new Date(meeting.scheduledAt).getTime() : 0;
+                  const canJoin = meeting.status === "active" || !meetingTime || meetingTime <= Date.now() + 15 * 60_000;
+                  return (
                   <div
                     key={meeting.id}
                     className={`rounded-xl border p-4 ${
@@ -532,7 +589,7 @@ export default function WorkspacePage() {
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
-                      <h4 className="text-sm font-semibold text-white truncate flex-1 mr-2">{meeting.name}</h4>
+                      <h4 className="text-sm font-semibold text-foreground truncate flex-1 mr-2">{meeting.name}</h4>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                         meeting.status === "active"
                           ? "bg-emerald-500 text-white"
@@ -541,10 +598,10 @@ export default function WorkspacePage() {
                         {meeting.status === "active" ? "LIVE" : "SOON"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 mb-3 flex items-center">
+                    <p className="text-xs text-muted-foreground mb-3 flex items-center">
                       <Clock className="w-3 h-3 mr-1" /> {meeting.scheduledTime} · {meeting.participants} participant{meeting.participants !== 1 ? "s" : ""}
                     </p>
-                    <a href={`/meeting/${meeting.id}`}>
+                    {canJoin ? <a href={`/meeting/${meeting.id}`}>
                       <Button
                         size="sm"
                         className={`w-full h-8 text-xs font-semibold shadow-xl ${
@@ -555,9 +612,10 @@ export default function WorkspacePage() {
                       >
                         {meeting.status === "active" ? "Join Now" : "Join Meeting"}
                       </Button>
-                    </a>
+                    </a> : <Button size="sm" variant="outline" disabled className="h-8 w-full text-xs"><Clock className="mr-1.5 h-3.5 w-3.5" /> Opens 15 min before</Button>}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -572,11 +630,16 @@ export default function WorkspacePage() {
       return <Messages />;
     }
 
-    if (activeTab === "files" || activeTab === "tasks" || activeTab === "calendar") {
+    if (activeTab === "calendar") {
+      return <CalendarPage chatId={chatId} />;
+    }
+
+    if (activeTab === "tasks") return <Tasks chatId={chatId || ""} members={members} currentUserId={user?._id} canManage={workspaceStats.canManage} />;
+    if (activeTab === "files") {
       return (
         <div className="flex-1 flex items-center justify-center text-gray-500 h-full">
           <div className="text-center">
-            <h3 className="text-xl text-gray-300 capitalize">{activeTab}</h3>
+            <h3 className="text-xl text-foreground capitalize">{activeTab}</h3>
             <p className="mt-2 text-sm">This module is coming soon.</p>
           </div>
         </div>
@@ -619,7 +682,7 @@ export default function WorkspacePage() {
       {Sidebar()}
       {SecondarySidebar()}
       
-      <main className="flex-1 flex flex-col min-w-0 relative z-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+      <main className="flex-1 flex flex-col min-w-0 relative z-0 shadow-[-10px_0_30px_var(--shadow-soft)]">
         {TopBar()}
         <div className="flex-1 flex flex-col relative overflow-hidden bg-background">
           {renderMainContent()}
@@ -640,7 +703,7 @@ export default function WorkspacePage() {
 
       <Toaster richColors theme={theme} />
       <CreateNotesModal showModal={showNotesModal} setShowModal={setShowNotesModal} setRefreshKey={setRefreshKey} />
-      <CreateMeetingModal chatId={chatId||""} open={showMeetingModal} onOpenChange={setShowMeetingModal} onSuccess={() => {
+      <CreateMeetingModal chatId={chatId||""} members={members} open={showMeetingModal} onOpenChange={setShowMeetingModal} onSuccess={() => {
         setRefreshKey((k) => k + 1);
         void fetchData("meetings");
       }} />

@@ -1,17 +1,17 @@
-// src/pages/SignIn.tsx
-import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Activity, Loader2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
+import { AuthShell } from "@/components/auth/AuthShell";
 
-const SignIn: React.FC = () => {
+export default function SignIn() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,19 +19,18 @@ const SignIn: React.FC = () => {
     if (isAuthenticated) navigate("/home");
   }, [isAuthenticated, navigate]);
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignIn = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      await login(email, password);
-      toast.success("Logged in successfully!");
+      await login(email.trim(), password);
+      toast.success("Welcome back!");
       navigate("/home");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Invalid credentials. Please try again.";
-      setError(msg);
-      toast.error(msg);
+      const message = err instanceof Error ? err.message : "Invalid credentials. Please try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -51,78 +50,30 @@ const SignIn: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 font-sans selection:bg-primary/20 text-foreground">
-      <div className="w-full max-w-[360px]">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-10 h-10 bg-surface border border-border rounded-lg flex items-center justify-center mb-6 shadow-sm">
-            <Activity className="w-5 h-5 text-primary" />
-          </div>
-          <h1 className="text-[22px] font-semibold tracking-tight text-foreground mb-1.5">Sign in to StudyHive</h1>
-          <p className="text-[14px] text-muted-foreground">Enter your details below to continue.</p>
+    <AuthShell title="Welcome back" description="Sign in to pick up where your group left off.">
+      {error && <div role="alert" className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-3 text-sm font-medium text-red-600 dark:text-red-300">{error}</div>}
+      <form onSubmit={handleSignIn} className="space-y-5">
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium text-foreground">Email address</label>
+          <input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required className="auth-input" />
         </div>
-
-        {error && (
-          <div className="mb-6 p-3 rounded-md bg-red-500/10 border border-red-500/20 text-[13px] text-red-400 font-medium">
-            {error}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="text-sm font-medium text-foreground">Password</label>
+            <button type="button" onClick={handleForgotPassword} className="text-xs font-medium text-primary transition hover:text-primary/75">Forgot password?</button>
           </div>
-        )}
-
-        <form onSubmit={handleSignIn} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-[13px] font-medium text-foreground/80">
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
-              required
-              className="w-full px-3 py-2 bg-surface border border-border rounded-md text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary transition-all"
-            />
+          <div className="relative">
+            <input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" autoComplete="current-password" required className="auth-input pr-12" />
+            <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-1.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="password" className="block text-[13px] font-medium text-foreground/80">
-                Password
-              </label>
-              <button type="button" onClick={handleForgotPassword} className="text-[12px] text-muted-foreground hover:text-primary transition-colors">
-                Forgot password?
-              </button>
-            </div>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              className="w-full px-3 py-2 bg-surface border border-border rounded-md text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary transition-all"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || !email || !password}
-            className="w-full h-9 mt-2 flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-[14px] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : "Sign in"}
-          </button>
-        </form>
-
-        <div className="mt-8 pt-6 border-t border-border text-center">
-          <p className="text-[13px] text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/sign-up" className="text-primary font-medium hover:underline underline-offset-4">
-              Sign up
-            </Link>
-          </p>
         </div>
-      </div>
-    </div>
+        <button type="submit" disabled={loading || !email.trim() || !password} className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign in <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>}
+        </button>
+      </form>
+      <p className="mt-7 border-t border-border pt-6 text-center text-sm text-muted-foreground">New to StudyHive? <Link to="/sign-up" className="font-semibold text-primary hover:underline hover:underline-offset-4">Create an account</Link></p>
+    </AuthShell>
   );
-};
-
-export default SignIn;
+}

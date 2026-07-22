@@ -33,6 +33,7 @@ export default function GroupListPage({ tab, icon: Icon, label, description }: G
           description: chat.description || "No description",
           usercount: Array.isArray(chat.chat_members) ? chat.chat_members.length : 0,
           lastMessage: chat.messages?.content || "",
+          unreadCount: Number(chat.unread_count ?? 0),
         })
       );
       setGroups(normalized);
@@ -118,7 +119,7 @@ export default function GroupListPage({ tab, icon: Icon, label, description }: G
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{group.chatName}</p>
+                <div className="flex items-center gap-2"><p className="text-sm font-semibold text-foreground truncate">{group.chatName}</p>{tab === "chat" && !!group.unreadCount && <span className="grid min-w-5 h-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">{group.unreadCount > 99 ? "99+" : group.unreadCount}</span>}</div>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">{group.description}</p>
               </div>
 

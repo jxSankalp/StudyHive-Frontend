@@ -48,6 +48,7 @@ export default function HomePage() {
         description: chat.description || "No description",
         usercount: Array.isArray(chat.chat_members) ? chat.chat_members.length : 0,
         lastMessage: chat.messages?.content || "No messages yet",
+        unreadCount: Number(chat.unread_count ?? 0),
       }));
       setGroups(normalizedGroups);
     } else {
@@ -197,9 +198,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     
-                    <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-1">
-                      {group.chatName}
-                    </h3>
+                    <div className="mb-1 flex items-center gap-2"><h3 className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-1">{group.chatName}</h3>{!!group.unreadCount && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">{group.unreadCount > 99 ? "99+" : group.unreadCount}</span>}</div>
                     <p className="text-sm text-muted-foreground line-clamp-2 h-10 mb-4">
                       {group.description}
                     </p>

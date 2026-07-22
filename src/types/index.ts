@@ -90,6 +90,7 @@ export interface Group {
   usercount: number;
   lastMessage: string;
   color?: string;
+  unreadCount?: number;
 }
 
 export interface CreateGroupModalProps {
@@ -125,4 +126,6 @@ export interface ApiChat {
   group_admin_id?: string | null;
   chat_members?: ApiChatMember[];
   messages?: { id: string; content: string; created_at: string } | null;
+  unread_count?: number;
+  last_read_at?: string | null;
 }

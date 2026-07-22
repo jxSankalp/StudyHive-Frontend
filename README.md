@@ -1,54 +1,25 @@
-# React + TypeScript + Vite
+# StudyHive Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19/Vite client for StudyHive, intended for Vercel deployment.
 
-Currently, two official plugins are available:
+## Local verification
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm ci
+npm run lint
+npm run build
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `VITE_BACKEND_URL`: Render API origin, without `/api`.
+- `VITE_SUPABASE_URL`: the same Supabase project used by the backend.
+- `VITE_SUPABASE_ANON_KEY`: that project's public anon key; never use the service-role key here.
+- `VITE_STREAM_API_KEY`: public Stream API key.
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+The frontend uses Supabase directly for Auth and backend-authorized signed Storage uploads. Application CRUD and signed-URL issuance go through the Render API with the active Supabase bearer token.
+
+## Vercel
+
+`vercel.json` builds to `dist`, rewrites SPA routes to `index.html`, applies baseline browser headers, and caches fingerprinted assets. Add the final Vercel origin to backend `CLIENT_URL`; use the wildcard preview allowlist only when previews require it.

@@ -1,14 +1,15 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import api, { getApiErrorMessage } from "@/lib/axiosInstance";
 import { socket } from "@/lib/socket";
 import { supabase } from "@/lib/supabaseClient";
 import { reportFrontendError } from "@/lib/telemetry";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle, AtSign, Bot, Copy, Download, File, Image as ImageIcon,
-  Loader2, MessageCircle, Mic, Paperclip, Pencil, PlusCircle, Reply,
-  Send, Smile, Trash2, X,
+  AlertCircle, ArrowUpRight, AtSign, CheckCircle2, CircleHelp, Copy, Download, File, Image as ImageIcon,
+  ListTodo, Loader2, MessageCircle, Mic, Paperclip, Pencil, PlusCircle, Reply,
+  RotateCcw, Send, Smile, Sparkles, Trash2, X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -34,6 +35,11 @@ interface Message {
   mentions: Mention[];
 }
 interface ReadReceipt { userId: string; lastReadAt: string; username: string }
+interface DigestItem { text: string; sourceMessageId: string; owner?: string }
+interface CatchUpResult {
+  digest: { summary: string; decisions: DigestItem[]; actionItems: DigestItem[]; openQuestions: DigestItem[] };
+  source: { messageCount: number; from: string | null; to: string | null; cached: boolean };
+}
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 4;
@@ -127,7 +133,7 @@ const renderMessageText = (message: Message) => {
 
 const Messages = ({ members }: { members: Member[] }) => {
   const { id: chatId } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -147,6 +153,10 @@ const Messages = ({ members }: { members: Member[] }) => {
   const [mentionIndex, setMentionIndex] = useState(0);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [loadedChatId, setLoadedChatId] = useState("");
+  const [digestOpen, setDigestOpen] = useState(false);
+  const [digestLoading, setDigestLoading] = useState(false);
+  const [digestError, setDigestError] = useState<string | null>(null);
+  const [catchUp, setCatchUp] = useState<CatchUpResult | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +198,7 @@ const Messages = ({ members }: { members: Member[] }) => {
   useEffect(() => {
     if (!chatId) return;
     currentChatIdRef.current = chatId;
-    setAttachments([]); setReplyingTo(null); setEditingId(null); setNewMessage(""); setSelectedMentions([]); setMentionQuery(null); openedTargetRef.current = "";
+    setAttachments([]); setReplyingTo(null); setEditingId(null); setNewMessage(""); setSelectedMentions([]); setMentionQuery(null); setCatchUp(null); setDigestError(null); setDigestOpen(false); openedTargetRef.current = "";
     void loadConversation();
   }, [chatId, loadConversation]);
 
@@ -434,11 +444,39 @@ const Messages = ({ members }: { members: Member[] }) => {
     } catch { toast.error("Message could not be deleted."); }
   };
 
+  const createDigest = async () => {
+    if (!chatId || digestLoading) return;
+    setDigestOpen(true); setDigestLoading(true); setDigestError(null);
+    try {
+      const { data } = await api.post<CatchUpResult>(`/messages/${chatId}/catch-up`);
+      setCatchUp(data);
+    } catch (digestRequestError) {
+      reportFrontendError("ai.digest.request.failed", digestRequestError, { chatId });
+      setDigestError(getApiErrorMessage(digestRequestError, "The catch-up digest could not be created."));
+    } finally { setDigestLoading(false); }
+  };
+
+  const openDigestSource = (messageId: string) => {
+    setDigestOpen(false);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", "chat"); next.set("message", messageId);
+    setSearchParams(next);
+    setHighlightedMessageId(messageId);
+    window.setTimeout(() => document.getElementById(`message-${messageId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 180);
+    window.setTimeout(() => setHighlightedMessageId((current) => current === messageId ? null : current), 3500);
+  };
+
   const groups: Record<string, Message[]> = {};
   messages.forEach((message) => { const date = new Date(message.createdAt).toLocaleDateString(); (groups[date] ??= []).push(message); });
   const latestOwnId = [...messages].reverse().find((message) => message.sender._id === user?._id && !message.deletedAt)?._id;
 
-  return (
+  const digestSections = catchUp ? [
+    { title: "Decisions", icon: CheckCircle2, items: catchUp.digest.decisions, tone: "text-emerald-600 dark:text-emerald-300", surface: "bg-emerald-500/10" },
+    { title: "Action items", icon: ListTodo, items: catchUp.digest.actionItems, tone: "text-indigo-600 dark:text-indigo-300", surface: "bg-indigo-500/10" },
+    { title: "Open questions", icon: CircleHelp, items: catchUp.digest.openQuestions, tone: "text-amber-700 dark:text-amber-300", surface: "bg-amber-500/10" },
+  ] : [];
+
+  return (<>
     <div className="flex h-full min-h-0 flex-1 flex-col bg-transparent">
       <div ref={scrollRef} className="custom-scrollbar min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6">
         {!loading && hasMore && <div className="flex justify-center"><Button variant="outline" size="sm" onClick={() => void loadOlder()} disabled={loadingOlder} className="rounded-full">{loadingOlder && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}Load older messages</Button></div>}
@@ -495,10 +533,33 @@ const Messages = ({ members }: { members: Member[] }) => {
           <textarea ref={textareaRef} placeholder={editingId ? "Edit your message…" : replyingTo ? "Write a reply…" : "Message workspace…"} value={newMessage} onChange={(event) => changeMessage(event.target.value, event.target.selectionStart)} onClick={(event) => updateMentionState(event.currentTarget.value, event.currentTarget.selectionStart)} onKeyDown={composerKeyDown} disabled={!chatId || loading} rows={1} className="custom-scrollbar min-h-[44px] max-h-32 flex-1 resize-none bg-transparent px-2 py-3 text-[15px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50" onInput={(event) => { const target = event.target as HTMLTextAreaElement; target.style.height = "auto"; target.style.height = `${Math.min(target.scrollHeight, 128)}px`; }} />
           <div className="flex shrink-0 items-center gap-1"><Button type="button" title="Mention a workspace member" variant="ghost" size="icon" onClick={insertMentionTrigger} className="h-9 w-9 rounded-xl"><AtSign className="h-5 w-5" /></Button><Button disabled title="Emoji picker coming soon" variant="ghost" size="icon" className="h-9 w-9 rounded-xl"><Smile className="h-5 w-5" /></Button><div className="mx-1 h-5 w-px bg-border" /><Button onClick={() => void handleSend()} disabled={(!newMessage.trim() && attachments.length === 0) || !chatId || loading || uploading} className={`h-9 w-9 rounded-xl transition-all ${(newMessage.trim() || attachments.length > 0) ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500" : "bg-elevated text-muted-foreground"}`}><Send className="h-4 w-4" /></Button></div>
         </div>
-        <div className="flex items-center justify-between border-t border-border bg-elevated/65 px-4 py-1.5"><div className="flex items-center gap-4"><button disabled className="flex cursor-not-allowed items-center gap-1 text-xs text-muted-foreground"><Bot className="h-3.5 w-3.5" /> Ask AI</button><button onClick={() => fileInputRef.current?.click()} disabled={uploading || !!editingId || attachments.length >= MAX_FILES} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"><Paperclip className="h-3.5 w-3.5" /> Attach</button><button disabled className="flex cursor-not-allowed items-center gap-1 text-xs text-muted-foreground"><Mic className="h-3.5 w-3.5" /> Voice</button></div><span className="text-[10px] text-muted-foreground"><strong className="text-foreground/70">Shift+Enter</strong> new line</span></div>
+        <div className="flex items-center justify-between border-t border-border bg-elevated/65 px-4 py-1.5"><div className="flex items-center gap-4"><button type="button" onClick={() => void createDigest()} disabled={!chatId || digestLoading || loading || messages.length === 0} className="flex items-center gap-1 text-xs font-medium text-primary transition hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-50">{digestLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Catch me up</button><button onClick={() => fileInputRef.current?.click()} disabled={uploading || !!editingId || attachments.length >= MAX_FILES} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"><Paperclip className="h-3.5 w-3.5" /> Attach</button><button disabled className="flex cursor-not-allowed items-center gap-1 text-xs text-muted-foreground"><Mic className="h-3.5 w-3.5" /> Voice</button></div><span className="text-[10px] text-muted-foreground"><strong className="text-foreground/70">Shift+Enter</strong> new line</span></div>
       </div></div></div>
     </div>
-  );
+    <Dialog open={digestOpen} onOpenChange={setDigestOpen}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto rounded-3xl border-border bg-surface p-0 shadow-2xl sm:max-w-2xl">
+        <div className="border-b border-border bg-gradient-to-br from-primary/12 via-surface to-violet-500/10 px-6 py-5 pr-14">
+          <DialogHeader>
+            <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20"><Sparkles className="h-5 w-5" /></div>
+            <DialogTitle className="text-xl">Catch me up</DialogTitle>
+            <DialogDescription>A grounded digest of the latest conversation—not a replacement for the source messages.</DialogDescription>
+          </DialogHeader>
+        </div>
+        <div className="space-y-5 px-6 pb-6">
+          {digestLoading && <div className="space-y-3 py-4" aria-live="polite"><div className="h-4 w-2/3 animate-pulse rounded bg-elevated" /><div className="h-4 w-full animate-pulse rounded bg-elevated" /><div className="h-24 animate-pulse rounded-2xl bg-elevated" /><p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Reading the recent conversation…</p></div>}
+          {!digestLoading && digestError && <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-4" role="alert"><div className="flex gap-3"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-300" /><div><p className="font-semibold text-foreground">Digest unavailable</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{digestError}</p><Button type="button" variant="outline" size="sm" onClick={() => void createDigest()} className="mt-3 rounded-xl"><RotateCcw className="h-3.5 w-3.5" /> Try again</Button></div></div></div>}
+          {!digestLoading && !digestError && catchUp && <>
+            <section><p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">In short</p><p className="text-[15px] leading-7 text-foreground">{catchUp.digest.summary}</p></section>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {digestSections.map(({ title, icon: Icon, items, tone, surface }) => <section key={title} className="rounded-2xl border border-border bg-background/70 p-4"><div className={`mb-3 flex h-8 w-8 items-center justify-center rounded-xl ${surface} ${tone}`}><Icon className="h-4 w-4" /></div><h3 className="text-sm font-semibold text-foreground">{title}</h3><div className="mt-3 space-y-3">{items.length === 0 ? <p className="text-xs leading-5 text-muted-foreground">Nothing explicit found.</p> : items.map((item, index) => <button type="button" key={`${item.sourceMessageId}:${index}`} onClick={() => openDigestSource(item.sourceMessageId)} className="group block w-full text-left"><span className="block text-xs leading-5 text-foreground">{item.text}</span>{item.owner && <span className="mt-1 block text-[11px] font-medium text-muted-foreground">Owner: {item.owner}</span>}<span className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${tone}`}>View source <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></span></button>)}</div></section>)}
+            </div>
+            <div className="flex flex-col gap-2 rounded-2xl border border-border bg-elevated/70 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span>AI-generated from {catchUp.source.messageCount} recent message{catchUp.source.messageCount === 1 ? "" : "s"}. Verify important details.</span>{catchUp.source.cached && <span className="font-medium text-foreground/70">Reused recent digest</span>}</div>
+            <p className="text-[11px] leading-5 text-muted-foreground">When requested, message text is sent to Gemini. Attachments, profile emails, tokens, and file URLs are not included.</p>
+          </>}
+        </div>
+      </DialogContent>
+    </Dialog>
+  </>);
 };
 
 export default Messages;

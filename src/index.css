@@ -165,6 +165,8 @@
   --landing-card-hover: #fffaf0;
   --landing-visual: #ece5d6;
   --landing-ink: #142b23;
+  --landing-solid: #142b23;
+  --landing-on-solid: #f9f5e9;
   --landing-muted: #617168;
   --landing-line: #c9c4b6;
   --landing-accent: #c9f36a;
@@ -179,21 +181,23 @@
 }
 
 .dark .landing-shell {
-  --landing-paper: #101a16;
-  --landing-paper-translucent: rgba(16, 26, 22, 0.9);
-  --landing-card: #18251f;
-  --landing-card-hover: #1e2d26;
-  --landing-visual: #22342b;
-  --landing-ink: #edf0e7;
-  --landing-muted: #aebbb2;
-  --landing-line: #3a4d43;
-  --landing-accent: #d1f779;
-  --landing-accent-soft: #304a2c;
-  --landing-accent-strong: #d1f779;
-  --landing-coral: #ff8b6c;
-  --landing-coral-text: #ff9f87;
-  --landing-coral-soft: #513126;
-  --landing-gold: #f2c85f;
+  --landing-paper: #09130f;
+  --landing-paper-translucent: rgba(9, 19, 15, 0.92);
+  --landing-card: #15251e;
+  --landing-card-hover: #1c3027;
+  --landing-visual: #0d1b15;
+  --landing-ink: #f4f3eb;
+  --landing-solid: #050d09;
+  --landing-on-solid: #f7f4ea;
+  --landing-muted: #bdc9c0;
+  --landing-line: #52685c;
+  --landing-accent: #d7ff72;
+  --landing-accent-soft: #3b5b31;
+  --landing-accent-strong: #d7ff72;
+  --landing-coral: #ff8d6d;
+  --landing-coral-text: #ffb09a;
+  --landing-coral-soft: #593126;
+  --landing-gold: #ffd166;
 }
 
 .landing-display {

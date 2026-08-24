@@ -81,7 +81,7 @@ function WorkspacePreview() {
         </div>
 
         <div className="grid min-h-[390px] grid-cols-[62px_1fr] sm:grid-cols-[150px_1fr]">
-          <aside className="border-r-2 border-[var(--landing-ink)] bg-[var(--landing-ink)] p-2.5 text-white">
+          <aside className="border-r-2 border-[var(--landing-line)] bg-[var(--landing-solid)] p-2.5 text-[var(--landing-on-solid)]">
             <p className="hidden px-2 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-white/45 sm:block">Spaces</p>
             <div className="mt-3 space-y-2">
               {["CA", "PL", "FP"].map((initials, index) => (
@@ -98,7 +98,7 @@ function WorkspacePreview() {
               <div><p className="text-sm font-bold">Calculus crew</p><p className="mt-0.5 text-[10px] text-[var(--landing-muted)]">6 members · 3 here now</p></div>
               <div className="flex items-center gap-2">
                 <span className="hidden rounded-full bg-[var(--landing-accent-soft)] px-3 py-1.5 text-[10px] font-bold text-[var(--landing-ink)] sm:block">Exam in 12 days</span>
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--landing-ink)] text-white"><Video className="h-4 w-4" /></span>
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--landing-solid)] text-[var(--landing-on-solid)]"><Video className="h-4 w-4" /></span>
               </div>
             </div>
 
@@ -107,7 +107,7 @@ function WorkspacePreview() {
                 <div className="flex items-center gap-2 text-[11px] font-bold"><MessageCircle className="h-3.5 w-3.5" /> Today</div>
                 <div className="mt-8 space-y-3">
                   <div className="mr-7 rounded-2xl rounded-bl-sm bg-[var(--landing-paper)] px-3 py-2.5 text-[11px] leading-4">Can someone explain question 14 before tonight?</div>
-                  <div className="ml-6 rounded-2xl rounded-br-sm bg-[var(--landing-ink)] px-3 py-2.5 text-[11px] leading-4 text-white">I added a worked example to our notes. @Maya, want to whiteboard it at 7?</div>
+                  <div className="ml-6 rounded-2xl rounded-br-sm bg-[var(--landing-solid)] px-3 py-2.5 text-[11px] leading-4 text-[var(--landing-on-solid)]">I added a worked example to our notes. @Maya, want to whiteboard it at 7?</div>
                   <div className="flex items-center gap-2 px-1 text-[9px] font-semibold text-[var(--landing-muted)]"><CheckCircle2 className="h-3 w-3 text-emerald-600" /> Seen by Arjun and 3 others</div>
                 </div>
                 <div className="mt-5 flex h-9 items-center justify-between rounded-xl border border-[var(--landing-line)] bg-[var(--landing-paper)] px-3 text-[10px] text-[var(--landing-muted)]"><span>Message the group…</span><ArrowRight className="h-3 w-3" /></div>
@@ -124,7 +124,7 @@ function WorkspacePreview() {
                 </div>
                 <div className="rounded-2xl bg-[var(--landing-coral-soft)] p-4">
                   <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--landing-muted)]">Next session</p><p className="mt-2 text-xs font-bold">Integration clinic</p><p className="mt-1 text-[10px] text-[var(--landing-muted)]">Today · 7:00 PM</p>
-                  <div className="mt-3 flex -space-x-1.5">{["A", "M", "R"].map((letter) => <span key={letter} className="grid h-6 w-6 place-items-center rounded-full border-2 border-[var(--landing-coral-soft)] bg-[var(--landing-ink)] text-[8px] font-bold text-white">{letter}</span>)}</div>
+                  <div className="mt-3 flex -space-x-1.5">{["A", "M", "R"].map((letter) => <span key={letter} className="grid h-6 w-6 place-items-center rounded-full border-2 border-[var(--landing-coral-soft)] bg-[var(--landing-solid)] text-[8px] font-bold text-[var(--landing-on-solid)]">{letter}</span>)}</div>
                 </div>
               </div>
             </div>
@@ -143,9 +143,9 @@ function FeatureVisual({ type }: { type: (typeof features)[number]["visual"] }) 
   if (type === "chat") return <div className="space-y-2"><div className="mr-10 h-8 rounded-xl rounded-bl-sm bg-[var(--landing-paper)]" /><div className="ml-12 h-10 rounded-xl rounded-br-sm bg-[var(--landing-accent)]" /><div className="mr-20 h-7 rounded-xl rounded-bl-sm bg-[var(--landing-paper)]" /></div>;
   if (type === "notes") return <div className="space-y-2.5"><div className="h-2 w-2/3 rounded-full bg-[var(--landing-ink)]" /><div className="h-1.5 w-full rounded-full bg-[var(--landing-line)]" /><div className="h-1.5 w-5/6 rounded-full bg-[var(--landing-line)]" /><div className="mt-4 border-l-2 border-[var(--landing-coral)] pl-3 text-[10px] font-semibold">Key idea: solve together.</div></div>;
   if (type === "board") return <div className="relative h-24"><span className="absolute left-2 top-3 h-12 w-12 rounded-full border-2 border-[var(--landing-coral)]" /><span className="absolute right-3 top-1 h-14 w-20 rotate-6 border-2 border-[var(--landing-ink)]" /><span className="absolute bottom-2 left-12 h-0.5 w-24 -rotate-12 bg-[var(--landing-accent)]" /></div>;
-  if (type === "meeting") return <div className="grid grid-cols-3 gap-2">{["AM", "RS", "MK"].map((name, index) => <div key={name} className={`grid aspect-[1.2] place-items-center rounded-xl text-[10px] font-black ${index === 1 ? "bg-[var(--landing-accent)] text-[#14231d]" : "bg-[var(--landing-ink)] text-white"}`}>{name}</div>)}</div>;
+  if (type === "meeting") return <div className="grid grid-cols-3 gap-2">{["AM", "RS", "MK"].map((name, index) => <div key={name} className={`grid aspect-[1.2] place-items-center rounded-xl text-[10px] font-black ${index === 1 ? "bg-[var(--landing-accent)] text-[#14231d]" : "bg-[var(--landing-solid)] text-[var(--landing-on-solid)]"}`}>{name}</div>)}</div>;
   if (type === "calendar") return <div className="grid grid-cols-7 gap-1">{Array.from({ length: 21 }, (_, index) => <span key={index} className={`aspect-square rounded-sm ${index === 10 || index === 16 ? "bg-[var(--landing-coral)]" : index === 12 ? "bg-[var(--landing-accent)]" : "bg-[var(--landing-paper)]"}`} />)}</div>;
-  if (type === "tasks") return <div className="space-y-2">{[true, false, false].map((done, index) => <div key={index} className="flex items-center gap-2 rounded-lg bg-[var(--landing-paper)] p-2"><span className={`grid h-4 w-4 place-items-center rounded ${done ? "bg-[var(--landing-ink)] text-white" : "border border-[var(--landing-line)]"}`}>{done && <Check className="h-2.5 w-2.5" />}</span><span className={`h-1.5 rounded-full bg-[var(--landing-line)] ${index === 1 ? "w-2/3" : "w-1/2"}`} /></div>)}</div>;
+  if (type === "tasks") return <div className="space-y-2">{[true, false, false].map((done, index) => <div key={index} className="flex items-center gap-2 rounded-lg bg-[var(--landing-paper)] p-2"><span className={`grid h-4 w-4 place-items-center rounded ${done ? "bg-[var(--landing-solid)] text-[var(--landing-on-solid)]" : "border border-[var(--landing-line)]"}`}>{done && <Check className="h-2.5 w-2.5" />}</span><span className={`h-1.5 rounded-full bg-[var(--landing-line)] ${index === 1 ? "w-2/3" : "w-1/2"}`} /></div>)}</div>;
   return <div className="space-y-2">{["@ You were mentioned", "Task due tomorrow"].map((label, index) => <div key={label} className="flex items-center gap-3 rounded-xl bg-[var(--landing-paper)] p-2.5"><span className={`h-2 w-2 rounded-full ${index === 0 ? "bg-[var(--landing-coral)]" : "bg-[var(--landing-accent)]"}`} /><span className="text-[10px] font-semibold">{label}</span><ChevronRight className="ml-auto h-3 w-3" /></div>)}</div>;
 }
 
@@ -154,7 +154,7 @@ function FeatureCard({ feature, index }: { feature: (typeof features)[number]; i
   return (
     <Reveal className={feature.className} delay={(index % 3) * 0.06}>
       <article className="group relative h-full min-h-[300px] overflow-hidden border-t-2 border-[var(--landing-ink)] bg-[var(--landing-card)] px-5 py-6 text-[var(--landing-ink)] transition duration-300 hover:-translate-y-1 hover:bg-[var(--landing-card-hover)] sm:px-6">
-        <div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-full bg-[var(--landing-ink)] text-[var(--landing-paper)] transition duration-300 group-hover:rotate-[-7deg] group-hover:bg-[var(--landing-accent)] group-hover:text-[#14231d]"><Icon className="h-5 w-5" /></span><span className="font-mono text-[11px] font-bold text-[var(--landing-muted)]">{feature.number} / 07</span></div>
+        <div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-full bg-[var(--landing-solid)] text-[var(--landing-on-solid)] transition duration-300 group-hover:rotate-[-7deg] group-hover:bg-[var(--landing-accent)] group-hover:text-[#14231d]"><Icon className="h-5 w-5" /></span><span className="font-mono text-[11px] font-bold text-[var(--landing-muted)]">{feature.number} / 07</span></div>
         <div className="mt-9 grid gap-7 sm:grid-cols-[1fr_.9fr] sm:items-end">
           <div><h3 className="landing-display text-[2rem] leading-none tracking-[-0.035em]">{feature.title}</h3><p className="mt-3 max-w-sm text-sm leading-6 text-[var(--landing-muted)]">{feature.copy}</p><p className="mt-5 text-[10px] font-black uppercase tracking-[0.16em]">{feature.detail}</p></div>
           <div aria-hidden="true" className="rounded-2xl border border-[var(--landing-line)] bg-[var(--landing-visual)] p-4 transition duration-300 group-hover:border-[var(--landing-ink)]"><FeatureVisual type={feature.visual} /></div>
@@ -218,7 +218,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="border-y-2 border-[var(--landing-ink)] bg-[var(--landing-ink)] text-[var(--landing-paper)]" aria-label="StudyHive product summary">
+        <section className="border-y-2 border-[var(--landing-ink)] bg-[var(--landing-solid)] text-[var(--landing-on-solid)]" aria-label="StudyHive product summary">
           <div className="mx-auto grid max-w-[1380px] grid-cols-1 divide-y divide-white/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             {[{ value: "07", label: "connected study tools" }, { value: "01", label: "shared membership model" }, { value: "01", label: "searchable workspace" }].map((stat) => <div key={stat.label} className="flex items-baseline gap-4 px-6 py-6 sm:justify-center lg:py-8"><strong className="landing-display text-4xl text-[var(--landing-accent)]">{stat.value}</strong><span className="max-w-32 text-[11px] font-bold uppercase leading-4 tracking-[0.12em] text-white/65">{stat.label}</span></div>)}
           </div>
@@ -236,14 +236,14 @@ export default function LandingPage() {
               <div className="relative hidden items-center justify-center border-x border-[var(--landing-line)] lg:flex" aria-hidden="true"><span className="grid h-14 w-14 place-items-center rounded-full bg-[var(--landing-accent)] text-[#14231d]"><ArrowRight className="h-5 w-5" /></span></div>
               <Reveal className="border-t border-[var(--landing-line)] py-9 lg:border-t-0 lg:py-12 lg:pl-12" delay={0.08}>
                 <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase tracking-[0.16em]">The StudyHive way</h3><span className="rounded-full bg-[var(--landing-accent-soft)] px-3 py-1 text-[10px] font-bold">Connected</span></div>
-                <div className="relative mt-8 min-h-[260px] overflow-hidden rounded-[28px] bg-[var(--landing-ink)] p-7 text-white"><div className="landing-rings absolute inset-0 opacity-30" aria-hidden="true" /><div className="relative grid h-full min-h-[204px] place-items-center"><div className="grid h-24 w-24 place-items-center rounded-full border border-white/20 bg-[var(--landing-accent)] text-center text-xs font-black leading-4 text-[#14231d] shadow-xl">ONE<br />SPACE</div>{[{ label: "Talk", pos: "left-0 top-2" }, { label: "Think", pos: "right-0 top-2" }, { label: "Plan", pos: "bottom-2 left-2" }, { label: "Meet", pos: "bottom-2 right-2" }].map((item) => <span key={item.label} className={`absolute ${item.pos} rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em]`}>{item.label}</span>)}</div></div>
+                <div className="relative mt-8 min-h-[260px] overflow-hidden rounded-[28px] bg-[var(--landing-solid)] p-7 text-[var(--landing-on-solid)]"><div className="landing-rings absolute inset-0 opacity-30" aria-hidden="true" /><div className="relative grid h-full min-h-[204px] place-items-center"><div className="grid h-24 w-24 place-items-center rounded-full border border-white/20 bg-[var(--landing-accent)] text-center text-xs font-black leading-4 text-[#14231d] shadow-xl">ONE<br />SPACE</div>{[{ label: "Talk", pos: "left-0 top-2" }, { label: "Think", pos: "right-0 top-2" }, { label: "Plan", pos: "bottom-2 left-2" }, { label: "Meet", pos: "bottom-2 right-2" }].map((item) => <span key={item.label} className={`absolute ${item.pos} rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em]`}>{item.label}</span>)}</div></div>
                 <p className="mt-6 max-w-md text-sm leading-6 text-[var(--landing-muted)]">One workspace keeps the conversation, material, plan, and people under the same permission boundary—and makes all of it easier to find again.</p>
               </Reveal>
             </div>
           </div>
         </section>
 
-        <section id="features" className="scroll-mt-20 bg-[var(--landing-ink)] px-5 py-24 text-[var(--landing-paper)] sm:px-8 lg:px-10 lg:py-32">
+        <section id="features" className="scroll-mt-20 bg-[var(--landing-solid)] px-5 py-24 text-[var(--landing-on-solid)] sm:px-8 lg:px-10 lg:py-32">
           <div className="mx-auto max-w-[1380px]">
             <Reveal className="grid gap-7 lg:grid-cols-[1fr_.72fr] lg:items-end"><div><p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--landing-accent)]">Seven surfaces. One rhythm.</p><h2 className="landing-display mt-5 max-w-4xl text-[clamp(3rem,5.6vw,5.5rem)] leading-[0.92] tracking-[-0.055em]">Everything the session needs, already in the room.</h2></div><p className="max-w-xl text-base leading-7 text-white/60 lg:justify-self-end">Not seven disconnected features. One continuous flow from a question, to an explanation, to a plan your group can actually follow.</p></Reveal>
             <div className="mt-16 grid gap-px bg-white/18 md:grid-cols-2 xl:grid-cols-3">{features.map((feature, index) => <FeatureCard key={feature.title} feature={feature} index={index} />)}</div>

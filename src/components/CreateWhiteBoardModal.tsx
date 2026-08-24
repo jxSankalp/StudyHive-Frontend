@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import api, { getApiErrorMessage } from '@/lib/axiosInstance';
+import { reportFrontendError } from '@/lib/telemetry';
 
 type CreateWhiteboardModalProps = {
   showModal: boolean;
@@ -52,7 +53,7 @@ const CreateWhiteboardModal = ({
       setWhiteboardName('');
       setRefreshKey((prev) => prev + 1);
     } catch (error: unknown) {
-      console.error('Error creating whiteboard:', error);
+      reportFrontendError('whiteboard.create.failed', error);
       toast.error(getApiErrorMessage(error, 'Failed to create whiteboard'));
     } finally {
       setLoading(false);

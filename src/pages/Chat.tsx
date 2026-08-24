@@ -43,12 +43,15 @@ import CreateMeetingModal from "@/components/CreateMeetingModal";
 import api from "@/lib/axiosInstance";
 import { useAuth } from "@/context/AuthContext";
 import { socket } from "@/lib/socket";
+import { reportFrontendError } from "@/lib/telemetry";
 import { useTheme } from "@/context/theme";
 import CalendarPage from "@/pages/CalendarPage";
 import Tasks from "@/components/chat/Tasks";
 import { NotificationBell } from "@/components/NotificationBell";
+import { WorkspaceSearch, type WorkspaceSearchResult } from "@/components/WorkspaceSearch";
 
 type TabType = "chat" | "notes" | "meetings" | "whiteboards" | "files" | "tasks" | "calendar";
+const VALID_TABS: TabType[] = ["chat", "notes", "meetings", "whiteboards", "files", "tasks", "calendar"];
 
 const noteExcerpt = (content: string) => {
   if (!content.includes("<")) return content;
@@ -62,9 +65,8 @@ export default function WorkspacePage() {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   
-  const validTabs: TabType[] = ["chat","notes","meetings","whiteboards","files","tasks","calendar"];
   const tabParam = searchParams.get("tab") as TabType | null;
-  const [activeTab, setActiveTab] = useState<TabType>(tabParam && validTabs.includes(tabParam) ? tabParam : "chat");
+  const [activeTab, setActiveTab] = useState<TabType>(tabParam && VALID_TABS.includes(tabParam) ? tabParam : "chat");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [noteSort, setNoteSort] = useState<"updated" | "created" | "title">("updated");
@@ -108,7 +110,7 @@ export default function WorkspacePage() {
       const res = await api.get(`/notes/${noteId}`);
       if (res.data?.data) setNoteData(res.data.data as Note);
     } catch (error) {
-      console.error(`Failed to fetch note ${noteId}:`, error);
+      reportFrontendError("chat.note.load.failed", error, { noteId });
     }
   };
 
@@ -126,7 +128,7 @@ export default function WorkspacePage() {
         setAllWhiteboardsData(Array.isArray(res.data?.data) ? res.data.data : []);
       }
     } catch (error) {
-      console.error(`Failed to fetch data for ${tab}:`, error);
+      reportFrontendError("chat.tab.load.failed", error, { tab });
     }
   }, [chatId]);
 
@@ -142,7 +144,7 @@ export default function WorkspacePage() {
         role: data.role === "owner" || data.role === "admin" ? data.role : "member",
       });
     } catch (error) {
-      console.error("Failed to fetch chat stats:", error);
+      reportFrontendError("chat.stats.load.failed", error);
     }
   }, [chatId]);
 
@@ -166,13 +168,49 @@ export default function WorkspacePage() {
         setMembers(parsed.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; }));
       }
     } catch (error) {
-      console.error("Failed to fetch members:", error);
+      reportFrontendError("chat.members.load.failed", error);
     }
   }, [chatId]);
 
   useEffect(() => {
     fetchData(activeTab);
   }, [activeTab, fetchData, refreshKey]);
+
+  useEffect(() => {
+    if (tabParam && VALID_TABS.includes(tabParam)) setActiveTab(tabParam);
+  }, [tabParam]);
+
+  useEffect(() => {
+    const noteId = searchParams.get("note");
+    const meetingId = searchParams.get("meeting");
+    const meetingDbId = searchParams.get("meetingDbId");
+    if (tabParam === "notes" && noteId) {
+      setSelectedItem(noteId);
+      void fetchNoteById(noteId);
+    } else if (tabParam === "meetings" && meetingId) {
+      setSelectedItem(meetingId);
+    } else if (tabParam === "meetings" && meetingDbId) {
+      const match = allMeetData.find((meeting) => meeting.meetingDbId === meetingDbId);
+      if (match) setSelectedItem(match.id);
+    }
+  }, [allMeetData, searchParams, tabParam]);
+
+  const openSearchResult = (result: WorkspaceSearchResult) => {
+    if (!chatId) return;
+    if (result.type === "message") {
+      setActiveTab("chat"); setSelectedItem(null);
+      navigate(`/chat/${chatId}?tab=chat&message=${encodeURIComponent(result.id)}`);
+    } else if (result.type === "note") {
+      setActiveTab("notes"); setSelectedItem(result.id); void fetchNoteById(result.id);
+      navigate(`/chat/${chatId}?tab=notes&note=${encodeURIComponent(result.id)}`);
+    } else if (result.type === "task") {
+      setActiveTab("tasks"); setSelectedItem(null);
+      navigate(`/chat/${chatId}?tab=tasks&task=${encodeURIComponent(result.id)}`);
+    } else {
+      setActiveTab("meetings"); setSelectedItem(result.id);
+      navigate(`/chat/${chatId}?tab=meetings&meeting=${encodeURIComponent(result.id)}`);
+    }
+  };
 
   useEffect(() => {
     fetchWorkspaceStats();
@@ -450,6 +488,7 @@ export default function WorkspacePage() {
       </div>
 
       <div className="flex items-center space-x-2">
+        {chatId && <WorkspaceSearch chatId={chatId} onSelect={openSearchResult} />}
         <NotificationBell />
         <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground hover:text-foreground" title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
           {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -627,14 +666,14 @@ export default function WorkspacePage() {
 
   const renderMainContent = () => {
     if (activeTab === "chat") {
-      return <Messages />;
+      return <Messages members={members} />;
     }
 
     if (activeTab === "calendar") {
       return <CalendarPage chatId={chatId} />;
     }
 
-    if (activeTab === "tasks") return <Tasks chatId={chatId || ""} members={members} currentUserId={user?._id} canManage={workspaceStats.canManage} />;
+    if (activeTab === "tasks") return <Tasks chatId={chatId || ""} members={members} currentUserId={user?._id} canManage={workspaceStats.canManage} targetTaskId={searchParams.get("task")} />;
     if (activeTab === "files") {
       return (
         <div className="flex-1 flex items-center justify-center text-gray-500 h-full">

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import api from "@/lib/axiosInstance";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
+import { reportFrontendError } from "@/lib/telemetry";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -52,14 +53,14 @@ export default function HomePage() {
       }));
       setGroups(normalizedGroups);
     } else {
-      console.error("Failed to fetch groups:", chatResult.reason);
+      reportFrontendError("home.groups.load.failed", chatResult.reason);
       setGroups([]);
     }
 
     if (statsResult.status === "fulfilled") {
       setUserStats(statsResult.value.data);
     } else {
-      console.error("Failed to fetch user stats:", statsResult.reason);
+      reportFrontendError("home.stats.load.failed", statsResult.reason);
     }
     setIsLoading(false);
   }, []);

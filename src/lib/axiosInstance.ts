@@ -1,5 +1,6 @@
 import axios from "axios";
 import { supabase } from "./supabaseClient";
+import { captureFrontendError } from "./telemetry";
 
 export const BACKEND_URL =
   (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, "") ||
@@ -17,8 +18,24 @@ api.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers["X-Request-ID"] = crypto.randomUUID();
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error) && (!error.response || error.response.status >= 500)) {
+      captureFrontendError(error, {
+        requestId: error.config?.headers?.["X-Request-ID"],
+        method: error.config?.method,
+        url: error.config?.url,
+        status: error.response?.status,
+      });
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const getApiErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError(error)) {

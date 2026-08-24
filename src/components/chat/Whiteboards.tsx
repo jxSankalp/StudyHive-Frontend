@@ -22,6 +22,7 @@ import { socket } from "@/lib/socket";
 type Tool = "pen" | "eraser" | "text" | "rectangle" | "circle";
 
 interface ShapeAttrs {
+  shapeId: string;
   tool: Tool;
   x: number;
   y: number;
@@ -42,6 +43,11 @@ interface DrawingShape {
   className?: string;
   attrs: ShapeAttrs;
 }
+
+type WhiteboardDelta =
+  | { op: "shape:add"; shape: DrawingShape }
+  | { op: "shape:patch"; shapeId: string; attrs: Partial<ShapeAttrs>; appendPoints?: number[] }
+  | { op: "board:replace"; shapes: DrawingShape[] };
 
 type PointerEvent = MouseEvent | TouchEvent;
 
@@ -68,6 +74,7 @@ const isDrawingShape = (value: unknown): value is DrawingShape => {
   if (!isRecord(value) || !isRecord(value.attrs)) return false;
   return (
     isTool(value.attrs.tool) &&
+    typeof value.attrs.shapeId === "string" &&
     typeof value.attrs.x === "number" &&
     typeof value.attrs.y === "number"
   );
@@ -82,7 +89,12 @@ const parseSavedShapes = (savedData: unknown): DrawingShape[] => {
       (child) => isRecord(child) && child.className === "Layer"
     );
     if (!isRecord(layer) || !Array.isArray(layer.children)) return [];
-    return layer.children.filter(isDrawingShape).map((shape) => cloneShapes([shape])[0]);
+    const children = layer.children as unknown[];
+    return children.filter((shape): shape is DrawingShape => {
+      if (!isRecord(shape) || !isRecord(shape.attrs)) return false;
+      if (typeof shape.attrs.shapeId !== "string") shape.attrs.shapeId = `legacy:${children.indexOf(shape)}`;
+      return isDrawingShape(shape);
+    }).map((shape) => cloneShapes([shape])[0]);
   } catch {
     return [];
   }
@@ -101,6 +113,8 @@ const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
   const linesRef = useRef<DrawingShape[]>([]);
   const historyRef = useRef<DrawingShape[][]>([[]]);
   const historyStepRef = useRef(0);
+  const pendingDeltasRef = useRef<WhiteboardDelta[]>([]);
+  const flushTimerRef = useRef<number | null>(null);
 
   const setDrawingState = (next: DrawingShape[]) => {
     const cloned = cloneShapes(next);
@@ -134,12 +148,24 @@ const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
     let active = true;
 
     const joinWhiteboard = () => socket.emit("whiteboard:join", whiteboardId);
-    const handleRemoteUpdate = (value: unknown) => {
+    const handleRemoteDeltas = (value: unknown) => {
       if (!Array.isArray(value)) return;
-      const shapes = value.filter(isDrawingShape);
-      if (shapes.length !== value.length) return;
-      setDrawingState(shapes);
-      commitHistory(shapes);
+      let next = cloneShapes(linesRef.current);
+      for (const candidate of value) {
+        if (!isRecord(candidate) || typeof candidate.op !== "string") return;
+        if (candidate.op === "shape:add" && isDrawingShape(candidate.shape)) {
+          const remoteShape = candidate.shape;
+          if (!next.some((shape) => shape.attrs.shapeId === remoteShape.attrs.shapeId)) next.push(cloneShapes([remoteShape])[0]);
+        } else if (candidate.op === "shape:patch" && typeof candidate.shapeId === "string" && isRecord(candidate.attrs)) {
+          const index = next.findIndex((shape) => shape.attrs.shapeId === candidate.shapeId);
+          if (index < 0) continue;
+          const appendPoints = Array.isArray(candidate.appendPoints) && candidate.appendPoints.every((point) => typeof point === "number") ? candidate.appendPoints as number[] : [];
+          next[index].attrs = { ...next[index].attrs, ...candidate.attrs, points: appendPoints.length ? [...(next[index].attrs.points ?? []), ...appendPoints] : next[index].attrs.points };
+        } else if (candidate.op === "board:replace" && Array.isArray(candidate.shapes) && candidate.shapes.every(isDrawingShape)) {
+          next = cloneShapes(candidate.shapes);
+        } else return;
+      }
+      setDrawingState(next);
     };
     const handleRemoteClear = () => {
       setDrawingState([]);
@@ -148,7 +174,7 @@ const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
 
     socket.on("connect", joinWhiteboard);
     socket.on("connected", joinWhiteboard);
-    socket.on("whiteboard:update", handleRemoteUpdate);
+    socket.on("whiteboard:deltas", handleRemoteDeltas);
     socket.on("whiteboard:clear-all", handleRemoteClear);
     socket.connect();
     if (socket.connected) joinWhiteboard();
@@ -169,20 +195,48 @@ const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
 
     return () => {
       active = false;
+      if (flushTimerRef.current !== null) window.clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+      pendingDeltasRef.current = [];
       socket.emit("whiteboard:leave", whiteboardId);
       socket.off("connect", joinWhiteboard);
       socket.off("connected", joinWhiteboard);
-      socket.off("whiteboard:update", handleRemoteUpdate);
+      socket.off("whiteboard:deltas", handleRemoteDeltas);
       socket.off("whiteboard:clear-all", handleRemoteClear);
     };
   }, [whiteboard?._id]);
 
-  const publish = (next: DrawingShape[]) => {
+  const flushDeltas = () => {
     if (!whiteboard?._id) return;
-    socket.emit("whiteboard:draw", {
+    if (flushTimerRef.current !== null) window.clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = null;
+    const deltas = pendingDeltasRef.current.splice(0, 50);
+    if (deltas.length === 0) return;
+    socket.emit("whiteboard:delta", {
       whiteboardId: whiteboard._id,
-      drawingData: next,
+      deltas,
     });
+    if (pendingDeltasRef.current.length > 0) flushTimerRef.current = window.setTimeout(flushDeltas, 50);
+  };
+
+  const publishDelta = (delta: WhiteboardDelta, immediate = false) => {
+    if (delta.op === "board:replace") {
+      pendingDeltasRef.current = [delta];
+    } else if (delta.op === "shape:patch") {
+      const last = pendingDeltasRef.current.at(-1);
+      if (last?.op === "shape:patch" && last.shapeId === delta.shapeId) {
+        const combinedPoints = [...(last.appendPoints ?? []), ...(delta.appendPoints ?? [])];
+        if (combinedPoints.length <= 128) {
+          last.attrs = { ...last.attrs, ...delta.attrs };
+          last.appendPoints = combinedPoints;
+        } else {
+          flushDeltas();
+          pendingDeltasRef.current.push(delta);
+        }
+      } else pendingDeltasRef.current.push(delta);
+    } else pendingDeltasRef.current.push(delta);
+    if (immediate) { flushDeltas(); return; }
+    if (flushTimerRef.current === null) flushTimerRef.current = window.setTimeout(flushDeltas, 50);
   };
 
   const handlePointerDown = (event: KonvaEventObject<PointerEvent>) => {
@@ -195,16 +249,16 @@ const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
       if (!text) return;
       const next = [
         ...linesRef.current,
-        { attrs: { tool, x: position.x, y: position.y, text, fontSize: 20, fill: color } },
+        { attrs: { shapeId: crypto.randomUUID(), tool, x: position.x, y: position.y, text, fontSize: 20, fill: color } },
       ];
       setDrawingState(next);
       commitHistory(next);
-      publish(next);
+      publishDelta({ op: "shape:add", shape: next.at(-1)! }, true);
       return;
     }
 
     isDrawing.current = true;
-    const attrs: ShapeAttrs = { tool, x: position.x, y: position.y };
+    const attrs: ShapeAttrs = { shapeId: crypto.randomUUID(), tool, x: position.x, y: position.y };
     if (tool === "pen" || tool === "eraser") {
       Object.assign(attrs, {
         points: [0, 0],
@@ -218,7 +272,9 @@ const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
     } else if (tool === "circle") {
       Object.assign(attrs, { radius: 1, stroke: color, strokeWidth: 2 });
     }
-    setDrawingState([...linesRef.current, { attrs }]);
+    const shape = { attrs };
+    setDrawingState([...linesRef.current, shape]);
+    publishDelta({ op: "shape:add", shape }, true);
   };
 
   const handlePointerMove = (event: KonvaEventObject<PointerEvent>) => {
@@ -231,20 +287,24 @@ const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
     if (!last) return;
     const attrs = last.attrs;
     if (attrs.tool === "pen" || attrs.tool === "eraser") {
-      attrs.points = [...(attrs.points ?? []), position.x - attrs.x, position.y - attrs.y];
+      const appended = [position.x - attrs.x, position.y - attrs.y];
+      attrs.points = [...(attrs.points ?? []), ...appended];
+      publishDelta({ op: "shape:patch", shapeId: attrs.shapeId, attrs: {}, appendPoints: appended });
     } else if (attrs.tool === "rectangle") {
       attrs.width = position.x - attrs.x;
       attrs.height = position.y - attrs.y;
+      publishDelta({ op: "shape:patch", shapeId: attrs.shapeId, attrs: { width: attrs.width, height: attrs.height } });
     } else if (attrs.tool === "circle") {
       attrs.radius = Math.hypot(position.x - attrs.x, position.y - attrs.y);
+      publishDelta({ op: "shape:patch", shapeId: attrs.shapeId, attrs: { radius: attrs.radius } });
     }
     setDrawingState(next);
-    publish(next);
   };
 
   const handlePointerUp = () => {
     if (!isDrawing.current) return;
     isDrawing.current = false;
+    flushDeltas();
     commitHistory(linesRef.current);
   };
 
@@ -270,7 +330,7 @@ const Whiteboard = ({ whiteboard }: { whiteboard?: WhiteboardType }) => {
     historyStepRef.current = nextStep;
     setHistoryStep(nextStep);
     setDrawingState(snapshot);
-    publish(snapshot);
+    publishDelta({ op: "board:replace", shapes: snapshot }, true);
   };
 
   if (!whiteboard) return null;

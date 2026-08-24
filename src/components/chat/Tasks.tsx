@@ -8,7 +8,7 @@ import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type Member = { id: string; username: string; photo?: string; role?: "owner" | "admin" | "member" };
-type Props = { chatId: string; members: Member[]; currentUserId?: string; canManage: boolean };
+type Props = { chatId: string; members: Member[]; currentUserId?: string; canManage: boolean; targetTaskId?: string | null };
 
 const columns: Array<{ status: WorkspaceTask["status"]; label: string; icon: typeof Circle }> = [
   { status: "todo", label: "To do", icon: Circle },
@@ -21,7 +21,7 @@ const priorityStyle: Record<WorkspaceTask["priority"], string> = {
   high: "bg-rose-500/12 text-rose-700 dark:text-rose-300",
 };
 
-export default function Tasks({ chatId, members, currentUserId, canManage }: Props) {
+export default function Tasks({ chatId, members, currentUserId, canManage, targetTaskId }: Props) {
   const [tasks, setTasks] = useState<WorkspaceTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -40,6 +40,11 @@ export default function Tasks({ chatId, members, currentUserId, canManage }: Pro
   }, [chatId]);
 
   useEffect(() => { void loadTasks(); }, [loadTasks]);
+  useEffect(() => {
+    if (loading || !targetTaskId) return;
+    const target = tasks.find((task) => task.id === targetTaskId);
+    if (target) setQuery(target.title);
+  }, [loading, targetTaskId, tasks]);
 
   const filtered = useMemo(() => tasks.filter((task) => {
     const matchesQuery = !query.trim() || `${task.title} ${task.description} ${task.assignee?.username ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());

@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axiosInstance";
 import { socket } from "@/lib/socket";
+import { reportFrontendError } from "@/lib/telemetry";
 
 type Notification = {
   id: string;
@@ -35,7 +36,7 @@ export function NotificationBell() {
       const { data } = await api.get<{ notifications: Notification[] }>("/notifications");
       setNotifications(data.notifications);
     } catch (error) {
-      console.error("[NotificationBell] failed to load notifications", error);
+      reportFrontendError("notifications.load.failed", error);
     } finally {
       setLoading(false);
     }
@@ -79,7 +80,12 @@ export function NotificationBell() {
     }
     if (!notification.chatId) return;
     const tab = notification.entityType === "meeting" ? "meetings" : notification.entityType === "task" ? "tasks" : "chat";
-    navigate(`/chat/${notification.chatId}?tab=${tab}`);
+    const target = notification.entityId
+      ? notification.entityType === "message" ? `&message=${encodeURIComponent(notification.entityId)}`
+        : notification.entityType === "meeting" ? `&meetingDbId=${encodeURIComponent(notification.entityId)}`
+          : notification.entityType === "task" ? `&task=${encodeURIComponent(notification.entityId)}` : ""
+      : "";
+    navigate(`/chat/${notification.chatId}?tab=${tab}${target}`);
   };
 
   return (

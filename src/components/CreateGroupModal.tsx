@@ -2,6 +2,7 @@ import api, { getApiErrorMessage } from "@/lib/axiosInstance";
 import type { CreateGroupModalProps, IUser } from "@/types";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { reportFrontendError } from "@/lib/telemetry";
 
 const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   showModal,
@@ -73,7 +74,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
       setSearchQuery("");
       setSearchResults([]);
     } catch (error: unknown) {
-      console.error("Group creation failed:", error);
+      reportFrontendError("workspace.create.failed", error);
       toast.error(getApiErrorMessage(error, "Failed to create group. Please try again."));
     } finally {
       setIsSubmitting(false);

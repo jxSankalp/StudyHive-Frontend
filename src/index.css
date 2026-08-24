@@ -157,6 +157,128 @@
   }
 }
 
+/* Landing page: editorial study-club direction */
+.landing-shell {
+  --landing-paper: #f5f0e4;
+  --landing-paper-translucent: rgba(245, 240, 228, 0.9);
+  --landing-card: #fffdf7;
+  --landing-card-hover: #fffaf0;
+  --landing-visual: #ece5d6;
+  --landing-ink: #142b23;
+  --landing-muted: #617168;
+  --landing-line: #c9c4b6;
+  --landing-accent: #c9f36a;
+  --landing-accent-soft: #e2f7ae;
+  --landing-accent-strong: #78912e;
+  --landing-coral: #ee7658;
+  --landing-coral-text: #a43f29;
+  --landing-coral-soft: #f8d4c8;
+  --landing-gold: #f0c55b;
+  background: var(--landing-paper);
+  color: var(--landing-ink);
+}
+
+.dark .landing-shell {
+  --landing-paper: #101a16;
+  --landing-paper-translucent: rgba(16, 26, 22, 0.9);
+  --landing-card: #18251f;
+  --landing-card-hover: #1e2d26;
+  --landing-visual: #22342b;
+  --landing-ink: #edf0e7;
+  --landing-muted: #aebbb2;
+  --landing-line: #3a4d43;
+  --landing-accent: #d1f779;
+  --landing-accent-soft: #304a2c;
+  --landing-accent-strong: #d1f779;
+  --landing-coral: #ff8b6c;
+  --landing-coral-text: #ff9f87;
+  --landing-coral-soft: #513126;
+  --landing-gold: #f2c85f;
+}
+
+.landing-display {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  font-weight: 600;
+}
+
+.landing-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  transition: transform 220ms cubic-bezier(.22, 1, .36, 1), background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.landing-button:hover { transform: translateY(-2px); }
+.landing-button:active { transform: translateY(0) scale(.985); }
+.landing-button-dark {
+  background: var(--landing-ink);
+  color: var(--landing-paper);
+  box-shadow: 0 8px 22px rgba(20, 43, 35, 0.17);
+}
+.landing-button-dark:hover { box-shadow: 0 12px 28px rgba(20, 43, 35, 0.24); }
+.dark .landing-button-dark { background: var(--landing-accent); color: #102019; }
+
+.landing-nav-link { position: relative; transition: opacity 180ms ease; }
+.landing-nav-link::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.35rem;
+  left: 0;
+  height: 2px;
+  content: "";
+  background: var(--landing-coral);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 220ms cubic-bezier(.22, 1, .36, 1);
+}
+.landing-nav-link:hover::after { transform: scaleX(1); transform-origin: left; }
+
+.landing-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--landing-ink) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--landing-ink) 6%, transparent) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
+}
+
+.landing-orb {
+  pointer-events: none;
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(1px);
+  opacity: 0.72;
+  animation: landing-drift 10s ease-in-out infinite;
+}
+.landing-orb-one { top: 9rem; right: -5rem; width: 18rem; height: 18rem; background: var(--landing-accent); }
+.landing-orb-two { bottom: 1rem; left: -4rem; width: 10rem; height: 10rem; background: var(--landing-coral-soft); animation-delay: -4s; }
+.landing-window { transform: translateZ(0); }
+.landing-rings { background: repeating-radial-gradient(circle at center, transparent 0 28px, rgba(255, 255, 255, .18) 29px 30px); }
+.landing-cta-grid {
+  background-image:
+    linear-gradient(to right, rgba(17, 32, 25, .16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(17, 32, 25, .16) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+@keyframes landing-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(-18px, 14px, 0) rotate(4deg); }
+}
+
+@media (max-width: 640px) {
+  .landing-orb-one { top: 12rem; right: -8rem; width: 14rem; height: 14rem; }
+  .landing-window { box-shadow: 7px 8px 0 var(--landing-ink); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-orb { animation: none; }
+  .landing-button:hover { transform: none; }
+}
+
 .meeting-theme {
   background: #161b26 !important;
   color: #fff !important;

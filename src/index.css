@@ -274,6 +274,23 @@
     radial-gradient(circle at 22% 82%, color-mix(in srgb, var(--landing-coral) 12%, transparent), transparent 34%),
     linear-gradient(115deg, transparent 25%, rgba(255,255,255,.025) 25.5%, transparent 26%);
 }
+.landing-ai-mesh {
+  background-image:
+    radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--landing-coral) 10%, transparent), transparent 24%),
+    linear-gradient(to right, color-mix(in srgb, var(--landing-line) 18%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--landing-line) 18%, transparent) 1px, transparent 1px);
+  background-size: auto, 34px 34px, 34px 34px;
+}
+.landing-ai-sheen::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -40% auto -40% -55%;
+  width: 30%;
+  transform: skewX(-16deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+  animation: landing-ai-sheen 5.5s ease-in-out infinite;
+}
 .landing-cta-grid {
   background-image:
     linear-gradient(to right, rgba(17, 32, 25, .16) 1px, transparent 1px),
@@ -286,6 +303,12 @@
   50% { transform: translate3d(-18px, 14px, 0) rotate(4deg); }
 }
 
+@keyframes landing-ai-sheen {
+  0%, 58% { left: -55%; opacity: 0; }
+  64% { opacity: .9; }
+  88%, 100% { left: 125%; opacity: 0; }
+}
+
 @media (max-width: 640px) {
   .landing-orb-one { top: 12rem; right: -8rem; width: 14rem; height: 14rem; }
   .landing-window { box-shadow: 7px 8px 0 var(--landing-ink); }
@@ -294,6 +317,7 @@
 @media (prefers-reduced-motion: reduce) {
   .landing-orb { animation: none; }
   .landing-button:hover { transform: none; }
+  .landing-ai-sheen::after { display: none; }
 }
 
 .meeting-theme {

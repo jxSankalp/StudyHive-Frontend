@@ -2,10 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
-  Activity, ArrowDownRight, ArrowRight, Bell, CalendarDays, Check,
-  CheckCircle2, ChevronRight, Clock3, Copy, FileText, Hash, Link2Off,
+  Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Bell, CalendarDays, Check,
+  CheckCircle2, ChevronRight, CircleHelp, Clock3, Copy, FileText, Hash, Link2Off,
   ListChecks, Menu, MessageCircle, MoreHorizontal, Moon, PenTool, Search,
-  Sparkles, Sun, Users, Video, Wifi, X, type LucideIcon,
+  ShieldCheck, Sparkles, Sun, Users, Video, Wifi, X, type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "@/context/theme";
 
@@ -106,6 +106,40 @@ function ConnectedWorkspaceGraphic({ reduceMotion }: { reduceMotion: boolean }) 
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--landing-accent)]/20 bg-[var(--landing-accent)]/[0.08] px-3 py-2 text-[8px] font-bold text-white/65"><Activity className="h-3 w-3 text-[var(--landing-accent)]" /><span>Chat → note → task → meeting</span><span className="ml-auto text-[var(--landing-accent)]">one workspace</span></div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AiDigestPreview({ reduceMotion }: { reduceMotion: boolean }) {
+  const digestItems = [
+    { icon: CheckCircle2, label: "Decision", text: "Review chapters 4–6 before Friday.", tone: "text-emerald-700 dark:text-emerald-300", surface: "bg-emerald-500/10" },
+    { icon: ListChecks, label: "Action", text: "Ravi owns practice questions 12–18.", tone: "text-indigo-700 dark:text-indigo-300", surface: "bg-indigo-500/10" },
+    { icon: CircleHelp, label: "Open question", text: "Should the review session be recorded?", tone: "text-amber-800 dark:text-amber-300", surface: "bg-amber-500/10" },
+  ];
+  return (
+    <div className="relative mx-auto w-full max-w-[570px]" aria-hidden="true">
+      <div className="absolute -inset-3 rotate-2 rounded-[30px] bg-[var(--landing-coral)] opacity-80" />
+      <motion.div initial={reduceMotion ? false : { opacity: 0, y: 22, rotate: -1 }} whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, rotate: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: 0.7, delay: 0.12, ease }} className="landing-ai-sheen relative overflow-hidden rounded-[26px] border-2 border-[var(--landing-ink)] bg-[var(--landing-card)] text-[var(--landing-ink)] shadow-[10px_12px_0_var(--landing-ink)] dark:shadow-[10px_12px_0_rgba(0,0,0,.38)]">
+        <div className="flex items-center justify-between border-b border-[var(--landing-line)] bg-[var(--landing-paper)] px-4 py-3">
+          <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--landing-accent)] text-[#14231d]"><Sparkles className="h-4 w-4" /></span><div><p className="text-[11px] font-black">Catch me up</p><p className="text-[8px] font-semibold text-[var(--landing-muted)]">Calculus crew · recent conversation</p></div></div>
+          <span className="rounded-full border border-[var(--landing-line)] bg-[var(--landing-card)] px-2.5 py-1 text-[8px] font-black text-[var(--landing-muted)]">12 messages</span>
+        </div>
+        <div className="p-4 sm:p-5">
+          <div className="rounded-2xl border border-[var(--landing-line)] bg-[var(--landing-paper)] p-4">
+            <p className="text-[8px] font-black uppercase tracking-[0.15em] text-[var(--landing-coral-text)]">In short</p>
+            <p className="mt-2 text-[11px] font-semibold leading-5 sm:text-xs">The group narrowed Friday’s review to chapters 4–6, split the remaining practice set, and still needs to decide whether to record the session.</p>
+          </div>
+          <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
+            {digestItems.map(({ icon: Icon, label, text, tone, surface }) => <motion.div key={label} whileHover={reduceMotion ? undefined : { y: -3 }} className="rounded-2xl border border-[var(--landing-line)] bg-[var(--landing-paper)] p-3">
+              <span className={`grid h-7 w-7 place-items-center rounded-lg ${surface} ${tone}`}><Icon className="h-3.5 w-3.5" /></span>
+              <p className="mt-2.5 text-[8px] font-black uppercase tracking-[0.11em] text-[var(--landing-muted)]">{label}</p>
+              <p className="mt-1.5 text-[9px] font-semibold leading-4">{text}</p>
+              <span className={`mt-3 inline-flex items-center gap-1 text-[8px] font-black ${tone}`}>View source <ArrowUpRight className="h-2.5 w-2.5" /></span>
+            </motion.div>)}
+          </div>
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-[var(--landing-visual)] px-3 py-2.5 text-[8px] font-semibold text-[var(--landing-muted)]"><ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[var(--landing-accent-strong)]" /><span>AI-generated from recent chat. Important details stay one click from the source.</span></div>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -266,7 +300,7 @@ export default function LandingPage() {
       <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${scrolled || mobileMenuOpen ? "border-b border-[var(--landing-line)] bg-[var(--landing-paper-translucent)] backdrop-blur-xl" : "bg-transparent"}`}>
         <div className="mx-auto flex h-[72px] max-w-[1380px] items-center justify-between px-5 sm:px-8 lg:px-10">
           <Link to="/" aria-label="StudyHive home"><Logo /></Link>
-          <nav className="hidden items-center gap-8 text-[13px] font-semibold md:flex" aria-label="Main navigation"><a href="#problem" className="landing-nav-link">Why StudyHive</a><a href="#features" className="landing-nav-link">Features</a><a href="#how-it-works" className="landing-nav-link">How it works</a></nav>
+          <nav className="hidden items-center gap-7 text-[13px] font-semibold md:flex" aria-label="Main navigation"><a href="#problem" className="landing-nav-link">Why StudyHive</a><a href="#features" className="landing-nav-link">Features</a><a href="#ai-catch-up" className="landing-nav-link">AI catch-up</a><a href="#how-it-works" className="landing-nav-link">How it works</a></nav>
           <div className="hidden items-center gap-2 md:flex">
             <button type="button" onClick={toggleTheme} className="grid h-10 w-10 place-items-center rounded-full border border-[var(--landing-line)] transition hover:-translate-y-0.5 hover:border-[var(--landing-ink)]" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</button>
             <Link to="/sign-in" className="inline-flex h-10 items-center px-4 text-[13px] font-bold transition hover:opacity-60">Sign in</Link>
@@ -276,7 +310,7 @@ export default function LandingPage() {
         </div>
         {mobileMenuOpen && (
           <motion.nav initial={reduceMotion ? false : { opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="border-t border-[var(--landing-line)] bg-[var(--landing-paper)] px-5 pb-6 pt-4 md:hidden" aria-label="Mobile navigation">
-            {[{ label: "Why StudyHive", href: "#problem" }, { label: "Features", href: "#features" }, { label: "How it works", href: "#how-it-works" }].map((item) => <a key={item.href} href={item.href} onClick={closeMenu} className="flex h-12 items-center justify-between border-b border-[var(--landing-line)] text-sm font-bold">{item.label}<ArrowDownRight className="h-4 w-4" /></a>)}
+            {[{ label: "Why StudyHive", href: "#problem" }, { label: "Features", href: "#features" }, { label: "AI catch-up", href: "#ai-catch-up" }, { label: "How it works", href: "#how-it-works" }].map((item) => <a key={item.href} href={item.href} onClick={closeMenu} className="flex h-12 items-center justify-between border-b border-[var(--landing-line)] text-sm font-bold">{item.label}<ArrowDownRight className="h-4 w-4" /></a>)}
             <button type="button" onClick={toggleTheme} className="flex h-12 w-full items-center gap-3 border-b border-[var(--landing-line)] text-sm font-bold" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />} {theme === "dark" ? "Use light theme" : "Use dark theme"}</button>
             <div className="mt-5 grid grid-cols-2 gap-2"><Link to="/sign-in" className="landing-button h-12 border border-[var(--landing-line)]" onClick={closeMenu}>Sign in</Link><Link to="/sign-up" className="landing-button landing-button-dark h-12" onClick={closeMenu}>Get started</Link></div>
           </motion.nav>
@@ -330,6 +364,27 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section id="ai-catch-up" className="scroll-mt-20 px-5 py-24 sm:px-8 lg:px-10 lg:py-32">
+          <Reveal className="landing-ai-mesh relative mx-auto max-w-[1220px] overflow-hidden rounded-[38px] border-2 border-[var(--landing-ink)] bg-[var(--landing-card)] shadow-[12px_14px_0_var(--landing-ink)] dark:shadow-[12px_14px_0_rgba(0,0,0,.4)]">
+            <div className="relative grid lg:grid-cols-[.82fr_1.18fr] lg:items-stretch">
+              <div className="flex flex-col justify-center px-6 py-12 sm:px-10 lg:px-12 lg:py-16">
+                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.19em] text-[var(--landing-coral-text)]"><Sparkles className="h-3.5 w-3.5" /> A thoughtful AI extra</p>
+                <h2 className="landing-display mt-5 max-w-xl text-[clamp(2.8rem,5vw,4.8rem)] leading-[0.92] tracking-[-0.055em]">Missed the chat?<br /><span className="text-[var(--landing-accent-strong)]">Catch up in one click.</span></h2>
+                <p className="mt-6 max-w-xl text-[15px] leading-7 text-[var(--landing-muted)]">StudyHive turns up to 50 recent messages into a concise recap, decisions, action items, and open questions. Every extracted item links back to the exact message that supports it.</p>
+                <div className="mt-7 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                  {[{ icon: Users, label: "Members only" }, { icon: ArrowUpRight, label: "Source linked" }, { icon: ShieldCheck, label: "No auto-actions" }].map(({ icon: Icon, label }) => <div key={label} className="flex items-center gap-2 rounded-xl border border-[var(--landing-line)] bg-[var(--landing-paper)] px-3 py-2.5 text-[10px] font-black"><Icon className="h-3.5 w-3.5 text-[var(--landing-coral-text)]" />{label}</div>)}
+                </div>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"><Link to="/sign-up" className="landing-button landing-button-dark group h-12 px-6 text-xs">Try it with your group <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link><span className="text-[10px] font-semibold leading-4 text-[var(--landing-muted)]">AI-generated. Verify important details.</span></div>
+                <p className="mt-5 max-w-lg text-[10px] leading-5 text-[var(--landing-muted)]">When requested, recent message text is sent to Gemini. Attachments, profile emails, tokens, and file URLs are excluded.</p>
+              </div>
+              <div className="relative flex items-center overflow-hidden border-t-2 border-[var(--landing-ink)] bg-[var(--landing-accent-soft)] px-6 py-14 sm:px-10 lg:border-l-2 lg:border-t-0 lg:px-12">
+                <div className="landing-rings pointer-events-none absolute inset-0 opacity-35" aria-hidden="true" />
+                <AiDigestPreview reduceMotion={!!reduceMotion} />
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
         <section id="how-it-works" className="scroll-mt-20 px-5 py-24 sm:px-8 lg:px-10 lg:py-32">
           <div className="mx-auto max-w-[1220px]">
             <Reveal className="text-center"><p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--landing-coral-text)]">Easy to start. Easier to return to.</p><h2 className="landing-display mx-auto mt-5 max-w-3xl text-[clamp(2.8rem,5vw,4.8rem)] leading-[0.95] tracking-[-0.05em]">A better group habit in three steps.</h2></Reveal>
@@ -349,7 +404,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t-2 border-[var(--landing-ink)] px-5 py-10 sm:px-8 lg:px-10">
-        <div className="mx-auto flex max-w-[1380px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between"><div><Link to="/" aria-label="StudyHive home"><Logo /></Link><p className="mt-4 max-w-sm text-sm leading-6 text-[var(--landing-muted)]">One calm, connected workspace for study groups that want to make real progress.</p></div><div className="flex flex-wrap gap-x-6 gap-y-3 text-xs font-bold"><a href="#problem" className="landing-nav-link">Why StudyHive</a><a href="#features" className="landing-nav-link">Features</a><a href="#how-it-works" className="landing-nav-link">How it works</a><Link to="/sign-in" className="landing-nav-link">Sign in</Link></div></div>
+        <div className="mx-auto flex max-w-[1380px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between"><div><Link to="/" aria-label="StudyHive home"><Logo /></Link><p className="mt-4 max-w-sm text-sm leading-6 text-[var(--landing-muted)]">One calm, connected workspace for study groups that want to make real progress.</p></div><div className="flex flex-wrap gap-x-6 gap-y-3 text-xs font-bold"><a href="#problem" className="landing-nav-link">Why StudyHive</a><a href="#features" className="landing-nav-link">Features</a><a href="#ai-catch-up" className="landing-nav-link">AI catch-up</a><a href="#how-it-works" className="landing-nav-link">How it works</a><Link to="/sign-in" className="landing-nav-link">Sign in</Link></div></div>
         <div className="mx-auto mt-9 flex max-w-[1380px] flex-col gap-2 border-t border-[var(--landing-line)] pt-6 text-[10px] font-bold uppercase tracking-[0.13em] text-[var(--landing-muted)] sm:flex-row sm:justify-between"><span>© {new Date().getFullYear()} StudyHive</span><span>Built for shared progress</span></div>
       </footer>
     </motion.div>

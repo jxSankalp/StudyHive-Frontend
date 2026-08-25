@@ -3,8 +3,9 @@ import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   Activity, ArrowDownRight, ArrowRight, Bell, CalendarDays, Check,
-  CheckCircle2, ChevronRight, FileText, ListChecks, Menu, MessageCircle,
-  Moon, PenTool, Search, Sparkles, Sun, Video, X, type LucideIcon,
+  CheckCircle2, ChevronRight, Clock3, Copy, FileText, Hash, Link2Off,
+  ListChecks, Menu, MessageCircle, MoreHorizontal, Moon, PenTool, Search,
+  Sparkles, Sun, Users, Video, Wifi, X, type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "@/context/theme";
 
@@ -28,7 +29,86 @@ const features: Array<{
   { icon: Bell, number: "07", title: "Notifications", copy: "Return to the exact message, task, or meeting that needs you.", detail: "Relevant · deep-linked", className: "md:col-span-2 xl:col-span-2", visual: "notifications" },
 ];
 
-const scatteredTools = ["WhatsApp", "Discord", "Google Docs", "Zoom", "Calendar", "Task list"];
+function ScatteredWorkflowGraphic({ reduceMotion }: { reduceMotion: boolean }) {
+  const cardMotion = (x: number, y: number, rotate: number) => reduceMotion ? undefined : { x, y, rotate };
+  return (
+    <div className="relative mt-8 min-h-[310px] overflow-hidden rounded-[30px] border border-[var(--landing-line)] bg-[var(--landing-card)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.5)]" aria-hidden="true">
+      <div className="landing-fragment-grid pointer-events-none absolute inset-0 opacity-60" />
+      <div className="relative z-20 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.14em] text-[var(--landing-muted)]">
+        <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-coral)]" /> 6 apps open</span>
+        <span className="flex items-center gap-1.5 rounded-full border border-[var(--landing-line)] bg-[var(--landing-paper)] px-2.5 py-1"><Link2Off className="h-3 w-3 text-[var(--landing-coral-text)]" /> Context missing</span>
+      </div>
+      <svg className="pointer-events-none absolute inset-x-8 top-12 h-[225px] w-[calc(100%-4rem)]" viewBox="0 0 500 225" preserveAspectRatio="none">
+        <path d="M76 56 C160 42 178 94 244 111" fill="none" stroke="var(--landing-line)" strokeWidth="1.5" strokeDasharray="5 7" />
+        <path d="M424 48 C345 39 326 92 257 109" fill="none" stroke="var(--landing-line)" strokeWidth="1.5" strokeDasharray="5 7" />
+        <path d="M82 183 C150 195 183 145 240 119" fill="none" stroke="var(--landing-line)" strokeWidth="1.5" strokeDasharray="5 7" />
+        <path d="M418 182 C343 197 323 147 260 119" fill="none" stroke="var(--landing-line)" strokeWidth="1.5" strokeDasharray="5 7" />
+      </svg>
+      <motion.div initial={cardMotion(-12, -5, -3)} whileInView={cardMotion(0, 0, -1.5)} viewport={{ once: true }} transition={{ duration: 0.55, ease }} whileHover={reduceMotion ? undefined : { y: -4, rotate: 0 }} className="absolute left-[5%] top-[20%] z-10 w-[41%] max-w-[205px] rounded-2xl border border-[var(--landing-line)] bg-[var(--landing-paper)] p-3 shadow-[0_9px_18px_rgba(20,43,35,.09)]">
+        <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-[10px] font-black"><span className="grid h-6 w-6 place-items-center rounded-lg bg-[#dff6e7] text-[#18794e]"><MessageCircle className="h-3.5 w-3.5" /></span>WhatsApp</span><span className="rounded-full bg-[var(--landing-coral)] px-1.5 py-0.5 text-[8px] font-black text-white">37</span></div>
+        <div className="mt-2 rounded-lg bg-[var(--landing-card)] px-2.5 py-2 text-[9px] leading-4 text-[var(--landing-muted)]">“Wait—what did we decide?”</div>
+      </motion.div>
+      <motion.div initial={cardMotion(14, -8, 3)} whileInView={cardMotion(0, 0, 1.5)} viewport={{ once: true }} transition={{ duration: 0.55, delay: 0.05, ease }} whileHover={reduceMotion ? undefined : { y: -4, rotate: 0 }} className="absolute right-[5%] top-[18%] z-10 w-[40%] max-w-[198px] rounded-2xl border border-[var(--landing-line)] bg-[var(--landing-paper)] p-3 shadow-[0_9px_18px_rgba(20,43,35,.09)]">
+        <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-[10px] font-black"><span className="grid h-6 w-6 place-items-center rounded-lg bg-[#dfe9ff] text-[#3568c7]"><FileText className="h-3.5 w-3.5" /></span>Google Docs</span><MoreHorizontal className="h-3.5 w-3.5 text-[var(--landing-muted)]" /></div>
+        <div className="mt-2 space-y-1.5"><div className="h-1.5 w-full rounded-full bg-[var(--landing-line)]/60" /><div className="h-1.5 w-3/4 rounded-full bg-[var(--landing-line)]/40" /><div className="text-[8px] font-bold text-[var(--landing-coral-text)]">Last edited 9 days ago</div></div>
+      </motion.div>
+      <motion.div initial={cardMotion(-14, 8, 2)} whileInView={cardMotion(0, 0, 1)} viewport={{ once: true }} transition={{ duration: 0.55, delay: 0.1, ease }} whileHover={reduceMotion ? undefined : { y: -4, rotate: 0 }} className="absolute bottom-[7%] left-[7%] z-10 w-[39%] max-w-[194px] rounded-2xl border border-[var(--landing-line)] bg-[var(--landing-paper)] p-3 shadow-[0_9px_18px_rgba(20,43,35,.09)]">
+        <div className="flex items-center gap-2 text-[10px] font-black"><span className="grid h-6 w-6 place-items-center rounded-lg bg-[#e7e2ff] text-[#6251bd]"><Video className="h-3.5 w-3.5" /></span>Zoom link</div>
+        <div className="mt-2 flex items-center gap-1.5 text-[8px] font-bold text-[var(--landing-coral-text)]"><Clock3 className="h-3 w-3" /> Which link is current?</div>
+      </motion.div>
+      <motion.div initial={cardMotion(14, 8, -2)} whileInView={cardMotion(0, 0, -1)} viewport={{ once: true }} transition={{ duration: 0.55, delay: 0.15, ease }} whileHover={reduceMotion ? undefined : { y: -4, rotate: 0 }} className="absolute bottom-[8%] right-[6%] z-10 w-[40%] max-w-[198px] rounded-2xl border border-[var(--landing-line)] bg-[var(--landing-paper)] p-3 shadow-[0_9px_18px_rgba(20,43,35,.09)]">
+        <div className="flex items-center gap-2 text-[10px] font-black"><span className="grid h-6 w-6 place-items-center rounded-lg bg-[#fff0cc] text-[#9a6713]"><CalendarDays className="h-3.5 w-3.5" /></span>Calendar</div>
+        <div className="mt-2 flex items-center justify-between text-[8px] text-[var(--landing-muted)]"><span>Review session</span><span className="font-black text-[var(--landing-coral-text)]">No owner</span></div>
+      </motion.div>
+      <motion.div animate={reduceMotion ? undefined : { rotate: [-2, 2, -2], scale: [1, 1.025, 1] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="absolute left-1/2 top-1/2 z-30 grid h-[72px] w-[72px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-[var(--landing-card)] bg-[var(--landing-coral)] text-center text-[8px] font-black uppercase leading-3 tracking-[0.08em] text-white shadow-xl"><Copy className="mb-0.5 h-4 w-4" />Copy<br />paste</motion.div>
+      <span className="absolute bottom-[43%] left-[3%] z-20 -rotate-6 rounded-full border border-[var(--landing-line)] bg-[var(--landing-paper)] px-2.5 py-1 text-[8px] font-black shadow-sm">Discord</span>
+      <span className="absolute bottom-[41%] right-[2%] z-20 rotate-6 rounded-full border border-[var(--landing-line)] bg-[var(--landing-paper)] px-2.5 py-1 text-[8px] font-black shadow-sm">Task list.xlsx</span>
+    </div>
+  );
+}
+
+function ConnectedWorkspaceGraphic({ reduceMotion }: { reduceMotion: boolean }) {
+  return (
+    <div className="relative mt-8 min-h-[310px] overflow-hidden rounded-[30px] border border-white/10 bg-[var(--landing-solid)] text-[var(--landing-on-solid)] shadow-[0_18px_45px_rgba(5,13,9,.22)]" aria-hidden="true">
+      <div className="landing-connected-glow pointer-events-none absolute inset-0" />
+      <div className="relative flex h-11 items-center border-b border-white/10 px-4">
+        <div className="flex gap-1.5"><span className="h-2 w-2 rounded-full bg-[var(--landing-coral)]" /><span className="h-2 w-2 rounded-full bg-[var(--landing-gold)]" /><span className="h-2 w-2 rounded-full bg-[var(--landing-accent)]" /></div>
+        <div className="mx-auto flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[8px] font-bold text-white/65"><Hash className="h-2.5 w-2.5" /> Calculus crew</div>
+        <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.1em] text-[var(--landing-accent)]"><Wifi className="h-3 w-3" /> Live</span>
+      </div>
+      <div className="relative grid min-h-[265px] grid-cols-[48px_1fr]">
+        <aside className="flex flex-col items-center gap-3 border-r border-white/10 py-4">
+          {[MessageCircle, FileText, PenTool, Video, ListChecks].map((Icon, index) => <motion.span key={index} whileHover={reduceMotion ? undefined : { scale: 1.12 }} className={`grid h-7 w-7 place-items-center rounded-lg ${index === 0 ? "bg-[var(--landing-accent)] text-[#14231d]" : "text-white/45"}`}><Icon className="h-3.5 w-3.5" /></motion.span>)}
+        </aside>
+        <div className="p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div><p className="text-[8px] font-black uppercase tracking-[0.15em] text-[var(--landing-accent)]">Monday study sprint</p><p className="mt-1 text-sm font-black tracking-[-0.02em] text-white">Everything moves together.</p></div>
+            <div className="flex -space-x-1.5">{["A", "R", "M"].map((letter, index) => <span key={letter} className="grid h-6 w-6 place-items-center rounded-full border-2 border-[var(--landing-solid)] text-[8px] font-black text-[#14231d]" style={{ background: ["var(--landing-accent)", "var(--landing-gold)", "var(--landing-coral)"][index] }}>{letter}</span>)}</div>
+          </div>
+          <div className="mt-4 grid grid-cols-[1.15fr_.85fr] gap-2.5">
+            <motion.div whileHover={reduceMotion ? undefined : { y: -3 }} className="row-span-2 rounded-2xl border border-white/10 bg-white/[0.07] p-3 shadow-lg">
+              <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-[9px] font-black"><span className="grid h-5 w-5 place-items-center rounded-md bg-[var(--landing-accent)]/15 text-[var(--landing-accent)]"><MessageCircle className="h-3 w-3" /></span>Decision captured</span><span className="text-[7px] font-bold text-white/35">2m ago</span></div>
+              <p className="mt-3 text-[10px] font-semibold leading-4 text-white/85">Focus the review on chapters 4–6 before Friday.</p>
+              <div className="mt-3 flex flex-wrap gap-1.5"><span className="rounded-md bg-white/[0.07] px-2 py-1 text-[7px] font-bold text-white/55"># exam-review</span><span className="rounded-md bg-[var(--landing-accent)]/15 px-2 py-1 text-[7px] font-bold text-[var(--landing-accent)]">Added to notes</span></div>
+              <div className="mt-3 border-t border-white/10 pt-2.5"><div className="flex items-center gap-2 text-[8px] text-white/55"><FileText className="h-3 w-3 text-[var(--landing-accent)]" /><span className="font-bold text-white/75">Review plan</span><span className="ml-auto">linked</span></div></div>
+            </motion.div>
+            <motion.div whileHover={reduceMotion ? undefined : { y: -3 }} className="rounded-2xl border border-white/10 bg-white/[0.07] p-3">
+              <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/45"><CheckCircle2 className="h-3 w-3 text-[var(--landing-accent)]" /> Next action</div>
+              <p className="mt-2 text-[9px] font-bold leading-4 text-white/85">Ravi · Solve Q12–18</p>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><motion.div initial={{ width: 0 }} whileInView={{ width: "68%" }} viewport={{ once: true }} transition={{ duration: reduceMotion ? 0 : 0.8, delay: 0.35, ease }} className="h-full rounded-full bg-[var(--landing-accent)]" /></div>
+            </motion.div>
+            <motion.div whileHover={reduceMotion ? undefined : { y: -3 }} className="rounded-2xl border border-white/10 bg-white/[0.07] p-3">
+              <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/45"><Video className="h-3 w-3 text-[var(--landing-coral)]" /> Up next</div>
+              <p className="mt-2 text-[9px] font-bold text-white/85">Review room · 6:30 PM</p>
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--landing-coral)]/15 px-2 py-1 text-[7px] font-bold text-[#ffb09a]"><Users className="h-2.5 w-2.5" /> 4 invited</span>
+            </motion.div>
+          </div>
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--landing-accent)]/20 bg-[var(--landing-accent)]/[0.08] px-3 py-2 text-[8px] font-bold text-white/65"><Activity className="h-3 w-3 text-[var(--landing-accent)]" /><span>Chat → note → task → meeting</span><span className="ml-auto text-[var(--landing-accent)]">one workspace</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const reduceMotion = useReducedMotion();
@@ -230,13 +310,13 @@ export default function LandingPage() {
             <div className="mt-14 grid border-y-2 border-[var(--landing-ink)] lg:grid-cols-[1fr_110px_1fr]">
               <Reveal className="py-9 lg:py-12 lg:pr-12">
                 <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase tracking-[0.16em]">The usual setup</h3><span className="rounded-full bg-[var(--landing-coral-soft)] px-3 py-1 text-[10px] font-bold">Scattered</span></div>
-                <div className="mt-8 flex min-h-[260px] flex-wrap content-center justify-center gap-3 rounded-[28px] border border-dashed border-[var(--landing-line)] p-5">{scatteredTools.map((tool, index) => <motion.span key={tool} whileHover={reduceMotion ? undefined : { y: -4, rotate: index % 2 ? 2 : -2 }} className={`inline-flex h-12 items-center rounded-full border border-[var(--landing-line)] bg-[var(--landing-card)] px-4 text-xs font-bold shadow-sm ${index % 3 === 0 ? "-rotate-2" : index % 3 === 1 ? "translate-y-3 rotate-1" : "-translate-y-2"}`}>{tool}</motion.span>)}</div>
+                <ScatteredWorkflowGraphic reduceMotion={!!reduceMotion} />
                 <p className="mt-6 max-w-md text-sm leading-6 text-[var(--landing-muted)]">Decisions disappear in chat. Notes live in a mystery document. The call link is somewhere above. Nobody knows what is due.</p>
               </Reveal>
               <div className="relative hidden items-center justify-center border-x border-[var(--landing-line)] lg:flex" aria-hidden="true"><span className="grid h-14 w-14 place-items-center rounded-full bg-[var(--landing-accent)] text-[#14231d]"><ArrowRight className="h-5 w-5" /></span></div>
               <Reveal className="border-t border-[var(--landing-line)] py-9 lg:border-t-0 lg:py-12 lg:pl-12" delay={0.08}>
                 <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase tracking-[0.16em]">The StudyHive way</h3><span className="rounded-full bg-[var(--landing-accent-soft)] px-3 py-1 text-[10px] font-bold">Connected</span></div>
-                <div className="relative mt-8 min-h-[260px] overflow-hidden rounded-[28px] bg-[var(--landing-solid)] p-7 text-[var(--landing-on-solid)]"><div className="landing-rings absolute inset-0 opacity-30" aria-hidden="true" /><div className="relative grid h-full min-h-[204px] place-items-center"><div className="grid h-24 w-24 place-items-center rounded-full border border-white/20 bg-[var(--landing-accent)] text-center text-xs font-black leading-4 text-[#14231d] shadow-xl">ONE<br />SPACE</div>{[{ label: "Talk", pos: "left-0 top-2" }, { label: "Think", pos: "right-0 top-2" }, { label: "Plan", pos: "bottom-2 left-2" }, { label: "Meet", pos: "bottom-2 right-2" }].map((item) => <span key={item.label} className={`absolute ${item.pos} rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em]`}>{item.label}</span>)}</div></div>
+                <ConnectedWorkspaceGraphic reduceMotion={!!reduceMotion} />
                 <p className="mt-6 max-w-md text-sm leading-6 text-[var(--landing-muted)]">One workspace keeps the conversation, material, plan, and people under the same permission boundary—and makes all of it easier to find again.</p>
               </Reveal>
             </div>

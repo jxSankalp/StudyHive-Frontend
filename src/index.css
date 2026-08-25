@@ -261,6 +261,19 @@
 .landing-orb-two { bottom: 1rem; left: -4rem; width: 10rem; height: 10rem; background: var(--landing-coral-soft); animation-delay: -4s; }
 .landing-window { transform: translateZ(0); }
 .landing-rings { background: repeating-radial-gradient(circle at center, transparent 0 28px, rgba(255, 255, 255, .18) 29px 30px); }
+.landing-fragment-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--landing-line) 34%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--landing-line) 34%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+}
+.landing-connected-glow {
+  background:
+    radial-gradient(circle at 72% 24%, color-mix(in srgb, var(--landing-accent) 18%, transparent), transparent 30%),
+    radial-gradient(circle at 22% 82%, color-mix(in srgb, var(--landing-coral) 12%, transparent), transparent 34%),
+    linear-gradient(115deg, transparent 25%, rgba(255,255,255,.025) 25.5%, transparent 26%);
+}
 .landing-cta-grid {
   background-image:
     linear-gradient(to right, rgba(17, 32, 25, .16) 1px, transparent 1px),

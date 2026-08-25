@@ -26,7 +26,7 @@ const features: Array<{
   { icon: Video, number: "04", title: "Meetings", copy: "Start the call where your notes, people, and plan already live.", detail: "Video · participants", className: "md:col-span-2 xl:col-span-2", visual: "meeting" },
   { icon: CalendarDays, number: "05", title: "Calendar", copy: "Give every session and deadline one dependable home.", detail: "Shared · scheduled", className: "md:col-span-1", visual: "calendar" },
   { icon: ListChecks, number: "06", title: "Tasks", copy: "Make the next action and its owner impossible to miss.", detail: "Assigned · trackable", className: "md:col-span-1", visual: "tasks" },
-  { icon: Bell, number: "07", title: "Notifications", copy: "Return to the exact message, task, or meeting that needs you.", detail: "Relevant · deep-linked", className: "md:col-span-2 xl:col-span-2", visual: "notifications" },
+  { icon: Bell, number: "07", title: "Notifications", copy: "Return to the exact message, task, or meeting that needs you.", detail: "Relevant · deep-linked", className: "md:col-span-2 xl:col-span-1", visual: "notifications" },
 ];
 
 function ScatteredWorkflowGraphic({ reduceMotion }: { reduceMotion: boolean }) {
